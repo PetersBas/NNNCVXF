@@ -36,7 +36,7 @@ function Train(HN,alpha,batchsize,use_gpu,train_data,val_data,train_labels,val_l
       dc2val_train[counterprint] = dvalepoch_train/length(train_data)
 
       #validation data/labels
-      ioupos_val,iouneg_val = IoU(HN,val_data,labels_val)
+      ioupos_val,iouneg_val = IoU(HN,val_data,val_labels)
       ioupos_val=ioupos_val[ioupos_val.>0.0]
       IoU_hist_val[counterprint,:] = [mean(ioupos_val) mean(iouneg_val)]
       fvalepoch_val = 0.0
