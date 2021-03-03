@@ -22,7 +22,7 @@ function Train(HN,alpha,batchsize,use_gpu,train_data,val_data,train_labels,val_l
     clear_grad!(HN)
 
     if mod(j, 50) == 0
-      ioupos_train,iouneg_train = IoU(HN,train_data,labels_train)
+      ioupos_train,iouneg_train = IoU(HN,train_data,train_labels)
       ioupos_train = ioupos_train[ioupos_train.>0.0]
       IoU_hist_train[counterprint,:] = [mean(ioupos_train) mean(iouneg_train)]
       fvalepoch_train = 0.0
