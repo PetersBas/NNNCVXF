@@ -1,12 +1,12 @@
 export Train
 
 function Train(HN,alpha,batchsize,use_gpu,train_data,val_data,train_labels,val_labels,P,image_weights_train,image_weights_val,lossf,lossg,active_channels,flip_dims,maxiter,opt)
-  fval_train   = zeros(Float32, Int(maxiter/50))
-  fval_val     = zeros(Float32, Int(maxiter/50))
-  dc2val_train = zeros(Float32, Int(maxiter/50))
-  dc2val_val   = zeros(Float32, Int(maxiter/50))
-  IoU_hist_train = zeros(Float32,Int(maxiter/50),2)
-  IoU_hist_val   = zeros(Float32,Int(maxiter/50),2)
+  fval_train   = zeros(Float32,maxiter)
+  fval_val     = zeros(Float32,maxiter)
+  dc2val_train = zeros(Float32,maxiter)
+  dc2val_val   = zeros(Float32,maxiter)
+  IoU_hist_train = zeros(Float32,maxiter,2)
+  IoU_hist_val   = zeros(Float32,maxiter,2)
   counterprint = 1
 
   for j=1:maxiter
@@ -54,6 +54,13 @@ function Train(HN,alpha,batchsize,use_gpu,train_data,val_data,train_labels,val_l
     end
 
   end
+
+  fval_train   = fval_train[1:counterprint-1]
+  fval_val     = fval_val[1:counterprint-1]
+  dc2val_train = dc2val_train[1:counterprint-1]
+  dc2val_val   = dc2val_val[1:counterprint-1]
+  IoU_hist_train = IoU_hist_train[1:counterprint-1,:]
+  IoU_hist_val   = IoU_hist_val[1:counterprint-1,:]
 
   return fval_train, fval_val, dc2val_train, dc2val_val, IoU_hist_train, IoU_hist_val
 end

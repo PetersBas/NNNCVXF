@@ -18,5 +18,6 @@ include("DataSetUtils.jl")
 include("LossFunctions.jl")
 include("NetworkOutputSampling.jl")
 include("Train.jl")
+include("PlotUtils.jl")
 
 end #end module
