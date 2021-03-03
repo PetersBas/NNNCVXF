@@ -4,6 +4,7 @@ using LinearAlgebra
 using Random
 using Statistics
 using Printf
+using PyPlot
 
 using  Flux
 import Flux.Optimise.update!
