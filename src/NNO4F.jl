@@ -12,6 +12,7 @@ import Flux.Losses.crossentropy
 using  SetIntersectionProjection
 using  InvertibleNetworks
 using  Distributions
+import Images
 
 include("DataSetUtils.jl")
 include("LossFunctions.jl")

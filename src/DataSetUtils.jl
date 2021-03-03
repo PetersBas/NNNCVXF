@@ -4,24 +4,18 @@ export LoadCamvid, GetTVvalues
 Obtain the anisotropic total-variation per image. If the noise factor is larger than zero,
 the function return a number from the uniform distribution [trueTV * (1-noise_factor) - trueTV * (1+noise_factor)]
 """
-function GetTVvalues(labels,noise_factor)
+function GetTVvalues(grid,labels,noise_factor,compgrid)
 
-  struct grid #grid structure for discrete differential operators
-      n
-      d
-  end
-
-  compgrid = grid(size(labels[1])[1:2], (1, 1))
   (TV,dummy1,dummy2,dummy3) = get_TD_operator(compgrid,"TV",Float32)
 
   true_TV_list = zeros(Float32,length(labels))
 
-  if noise_factor == 0
-    for i=1:length(labels)
-      true_TV_list[i] = norm(TV*vec(labels[i][:,:,1]),1)
-    end
-  else
+  for i=1:length(labels)
+    true_TV_list[i] = norm(TV*vec(labels[i][:,:,1]),1)
+  end
+
     #add 'noise' to true tv list
+  if noise_factor>0.0
     for i=1:length(labels)
       d = Uniform((1-noise_factor)*true_TV_list[i],(1+noise_factor)*true_TV_list[i])
       true_TV_list[i] = rand(d,1)[1]
@@ -31,7 +25,7 @@ function GetTVvalues(labels,noise_factor)
   return true_TV_list
 end
 
-function LoadCamvid(basepath::string,nr_output_chan::Int)
+function LoadCamvid(basepath::String,nr_output_chan::Int)
 
   current_dir = pwd()
 
@@ -125,7 +119,7 @@ function LoadCamvid(basepath::string,nr_output_chan::Int)
     end
 
     #print % of pixels in each class for the first video
-    prinln("% of pixels in each class, for first video in CamVid dataset")
+    println("% of pixels in each class, for first video in CamVid dataset")
     for i=1:12;
       println("class: ",i)
       println(sum(train_labels_OneHot[:,:,i,:])/prod(size(train_labels_OneHot[:,:,1,:])).*100);
