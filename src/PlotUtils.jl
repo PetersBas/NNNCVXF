@@ -1,4 +1,4 @@
-export PlotCamvidLossUnconstrained, PlotCamvidLossConstrained
+export PlotCamvidLossUnconstrained, PlotCamvidLossConstrained, PlotDataLabelPredictionCamvid
 
 function PlotCamvidLossUnconstrained(fval_train,fval_val,IoU_hist_train,IoU_hist_val)
 
