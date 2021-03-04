@@ -18,7 +18,7 @@ function PlotCamvidLossUnconstrained(fval_train,fval_val,IoU_hist_train,IoU_hist
     IoU_log_val     = vcat(IoU_log_val,IoU_hist_val[i])
   end
 
-  iter_ax = range(0,step=50,length=length(fval_train))
+  iter_ax = range(0,step=50,length=length(f_log_train))
 
   figure(figsize=(16,7));
   subplot(1,2,1);plot(iter_ax,f_log_train,label="train");title("Training loss labels");
@@ -50,7 +50,7 @@ function PlotCamvidLossConstrained(fval_train,fval_val,IoU_hist_train,IoU_hist_v
     IoU_log_val     = vcat(IoU_log_val,IoU_hist_val[i])
   end
 
-  iter_ax = range(0,step=50,length=length(dc2val_train))
+  iter_ax = range(0,step=50,length=length(dc2_log_train))
   figure(figsize=(16,7));
   subplot(1,3,1);semilogy(iter_ax,dc2_log_train,label="train");legend();title("Squared distance-to-set");
   subplot(1,3,2);plot(iter_ax,f_log_train,label="train");title("Training loss labels");
