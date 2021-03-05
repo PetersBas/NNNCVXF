@@ -1,6 +1,6 @@
 export Dist2Set, LossTotal, IoU
 
-function Dist2Set(input,P,active_channels,active_z_slice::Int)
+function Dist2Set(input,P,active_channels)
   #active_z_slice is only used for hyperspectral imaging where we map a 3D or 4D
   #data volume to a 2D map of the earth. this 2D map is located at slice number
   #active_z_slice in a x-y-z-nchan-n_ex tensor
