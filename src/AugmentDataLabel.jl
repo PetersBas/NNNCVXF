@@ -5,8 +5,12 @@ function AugmentDataLabel(data::AbstractArray{T,N}, label, image_weights,flip_di
   for i in flip_dims
     if rand() > 0.5
       data          = reverse(data,dims=i)
-      label         = reverse(label,dims=i)
-      image_weights = reverse(image_weights,dims=i)
+      if isempty(label) == false
+        label         = reverse(label,dims=i)
+      end
+      if isempty(image_weights) == false
+        image_weights = reverse(image_weights,dims=i)
+      end
     end
   end
 
@@ -17,8 +21,12 @@ function AugmentDataLabel(data::AbstractArray{T,N}, label, image_weights,flip_di
       permutation[permute_dims] .=  permute_dims_augment
 
       data          = permutedims(data,permutation)
-      label         = permutedims(label,permutation)
-      image_weights = permutedims(image_weights,permutation)
+      if isempty(label) == false
+        label         = permutedims(label,permutation)
+      end
+      if isempty(image_weights) == false
+        image_weights = permutedims(image_weights,permutation)
+      end
     end
   end
 
