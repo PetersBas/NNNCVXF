@@ -22,7 +22,7 @@ function Train(HN,alpha,batchsize,use_gpu,train_data,val_data,train_labels,val_l
     clear_grad!(HN)
 
     if mod(j, 50) == 0
-      if isempty(train_labels)==false
+      if isempty(train_labels[1])==false
         ioupos_train,iouneg_train = IoU(HN,train_data,train_labels)
         ioupos_train = ioupos_train[ioupos_train.>0.0]
         IoU_hist_train[counterprint,:] = [mean(ioupos_train) mean(iouneg_train)]
@@ -38,7 +38,7 @@ function Train(HN,alpha,batchsize,use_gpu,train_data,val_data,train_labels,val_l
       dc2val_train[counterprint] = dvalepoch_train/length(train_data)
 
       #validation data/labels
-      if isempty(val_labels)==false
+      if isempty(val_labels[1])==false
         ioupos_val,iouneg_val = IoU(HN,val_data,val_labels)
         ioupos_val=ioupos_val[ioupos_val.>0.0]
         IoU_hist_val[counterprint,:] = [mean(ioupos_val) mean(iouneg_val)]
