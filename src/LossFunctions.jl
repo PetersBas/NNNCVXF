@@ -36,9 +36,6 @@ end
 function LossTotal(HN,alpha,use_gpu,X0::AbstractArray{T, N},label,P,image_weights,lossf,lossg,active_channels,active_z_slice::Int) where {T, N}
   #loss for hyperspectral imaging with 5d input
     Y_curr, Y_new, lgdet = HN.forward(X0,X0)
-    if use_gpu == true
-      Y_new = Y_new|>cpu
-    end
 
     if isempty(label)==false
         lval         = lossf(Y_new[:,:,active_z_slice,active_channels,1],label,image_weights)
@@ -58,6 +55,9 @@ function LossTotal(HN,alpha,use_gpu,X0::AbstractArray{T, N},label,P,image_weight
     #grad .= grad.*random_mask
 
   if alpha>0
+    if use_gpu == true
+      Y_new = Y_new|>cpu
+    end
     dc2,dc2_grad = Dist2Set(Y_new[:,:,active_z_slice,:,:],P,active_channels)
     # if (norm(alpha*dc2_grad[:,:,active_channels,1])/norm(grad)) > 10f0
     #   @warn "(norm(alpha*dc2_grad[:,:,active_channels,1])/norm(grad)) > 10f0"
@@ -73,7 +73,9 @@ function LossTotal(HN,alpha,use_gpu,X0::AbstractArray{T, N},label,P,image_weight
   if isempty(label)==false
       grad  = grad + alpha*dc2_grad[:,:,active_z_slice,active_channels,1]
   elseif isempty(label)==true
-      grad  = alpha*dc2_grad[:,:,active_z_slice,active_channels,1]
+      n = size(dc2_grad)
+      #dc2_grad = reshape(dc2_grad,n[1],n[2],1,n[3],1)
+      grad  = alpha*dc2_grad[:,:,active_channels,1]
   end
 
    ΔY_curr= zeros(Float32,size(Y_new))
