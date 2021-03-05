@@ -21,6 +21,6 @@ include("LossFunctions.jl")
 include("NetworkOutputSampling.jl")
 include("Train.jl")
 include("PlotUtils.jl")
-include("AugmentDataLabel")
+include("AugmentDataLabel.jl")
 
 end #end module
