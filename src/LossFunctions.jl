@@ -90,7 +90,7 @@ function LossTotal(HN,alpha,use_gpu,X0::AbstractArray{T, N},label,P,image_weight
    return lval, dc2
 end
 
-function LossTotal(HN,alpha,use_gpu,X0::AbstractArray{T, N},label,P,image_weights,lossf,lossg,active_channels) where {T, N}
+function LossTotal(HN,alpha,use_gpu,X0::AbstractArray{T, N},label,P,image_weights,lossf,lossg,active_channels,active_z_slice::Array{Any,1}) where {T, N}
 
     Y_curr, Y_new, lgdet = HN.forward(X0,X0)
     if use_gpu == true
