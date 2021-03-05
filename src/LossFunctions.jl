@@ -40,6 +40,8 @@ function LossTotal(HN,alpha,use_gpu,X0::AbstractArray{T, N},label,P,image_weight
     if isempty(label)==false
         lval         = lossf(Y_new[:,:,active_z_slice,active_channels,1],label,image_weights)
         (grad,dummy) = lossg(Y_new[:,:,active_z_slice,active_channels,1],label,image_weights)
+      else
+        lval = 0.0
     end
     # # #take equal number of random pixels from each class for the gradient
     # pos_inds = findall(label[:,:,1,1].==1)
@@ -114,6 +116,8 @@ function LossTotal(HN,alpha,use_gpu,X0::AbstractArray{T, N},label,P,image_weight
         lval         = lossf(Y_new[:,:,:,active_channels,1],label,image_weights)
         (grad,dummy) = lossg(Y_new[:,:,:,active_channels,1],label,image_weights)
       end
+    else
+      lval = 0.0
     end
     # # #take equal number of random pixels from each class for the gradient
     # pos_inds = findall(label[:,:,1,1].==1)
