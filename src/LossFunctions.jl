@@ -34,7 +34,7 @@ function Dist2Set(input,P,active_channels,active_z_slice::Int)
 end
 
 function LossTotal(HN,alpha,use_gpu,X0::AbstractArray{T, N},label,P,image_weights,lossf,lossg,active_channels,active_z_slice::Int) where {T, N}
-
+  #loss for hyperspectral imaging with 5d input
     Y_curr, Y_new, lgdet = HN.forward(X0,X0)
     if use_gpu == true
       Y_new = Y_new|>cpu
@@ -58,7 +58,7 @@ function LossTotal(HN,alpha,use_gpu,X0::AbstractArray{T, N},label,P,image_weight
     #grad .= grad.*random_mask
 
   if alpha>0
-    dc2,dc2_grad = Dist2Set(Y_new,P,active_channels)
+    dc2,dc2_grad = Dist2Set(Y_new[:,:,active_z_slice,:,:],P,active_channels)
     # if (norm(alpha*dc2_grad[:,:,active_channels,1])/norm(grad)) > 10f0
     #   @warn "(norm(alpha*dc2_grad[:,:,active_channels,1])/norm(grad)) > 10f0"
     # elseif (norm(alpha*dc2_grad[:,:,active_channels,1])/norm(grad)) < 0.1f0

@@ -1,6 +1,6 @@
 export Train
 
-function Train(HN,alpha,batchsize,use_gpu,train_data,val_data,train_labels,val_labels,P,image_weights_train,image_weights_val,lossf,lossg,active_channels,flip_dims,maxiter,opt,active_z_slice)
+function Train(HN,LossFunction,alpha,batchsize,use_gpu,train_data,val_data,train_labels,val_labels,P,image_weights_train,image_weights_val,lossf,lossg,active_channels,flip_dims,maxiter,opt,active_z_slice)
   fval_train   = zeros(Float32,maxiter)
   fval_val     = zeros(Float32,maxiter)
   dc2val_train = zeros(Float32,maxiter)
