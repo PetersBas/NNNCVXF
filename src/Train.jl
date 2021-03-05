@@ -1,6 +1,6 @@
 export Train
 
-function Train(HN,alpha,batchsize,use_gpu,train_data,val_data,train_labels,val_labels,P,image_weights_train,image_weights_val,lossf,lossg,active_channels,flip_dims,maxiter,opt,active_z_slice)
+function Train(HN,eval_every,alpha,batchsize,use_gpu,train_data,val_data,train_labels,val_labels,P,image_weights_train,image_weights_val,lossf,lossg,active_channels,flip_dims,maxiter,opt,active_z_slice)
   fval_train   = zeros(Float32,maxiter)
   fval_val     = zeros(Float32,maxiter)
   dc2val_train = zeros(Float32,maxiter)
@@ -21,7 +21,7 @@ function Train(HN,alpha,batchsize,use_gpu,train_data,val_data,train_labels,val_l
     end
     clear_grad!(HN)
 
-    if mod(j, 50) == 0
+    if mod(j, eval_every) == 0
       if isempty(train_labels[1])==false
         ioupos_train,iouneg_train = IoU(HN,train_data,train_labels)
         ioupos_train = ioupos_train[ioupos_train.>0.0]
@@ -42,16 +42,18 @@ function Train(HN,alpha,batchsize,use_gpu,train_data,val_data,train_labels,val_l
         ioupos_val,iouneg_val = IoU(HN,val_data,val_labels)
         ioupos_val=ioupos_val[ioupos_val.>0.0]
         IoU_hist_val[counterprint,:] = [mean(ioupos_val) mean(iouneg_val)]
+
+        fvalepoch_val = 0.0
+        dvalepoch_val = 0.0
+        for i=1:length(val_data)
+          f,d = LossTotal(HN,0f0,use_gpu,val_data[i],val_labels[i],P[i],image_weights_val[i],lossf,lossg,active_channels,active_z_slice)
+          fvalepoch_val = fvalepoch_val + f
+          dvalepoch_val = dvalepoch_val + d
+        end
+        fval_val[counterprint]   = fvalepoch_val/length(val_data)
+        dc2val_val[counterprint] = dvalepoch_val/length(val_data)
       end
-      fvalepoch_val = 0.0
-      dvalepoch_val = 0.0
-      for i=1:length(val_data)
-        f,d = LossTotal(HN,0f0,use_gpu,val_data[i],val_labels[i],P[i],image_weights_val[i],lossf,lossg,active_channels,active_z_slice)
-        fvalepoch_val = fvalepoch_val + f
-        dvalepoch_val = dvalepoch_val + d
-      end
-      fval_val[counterprint]   = fvalepoch_val/length(val_data)
-      dc2val_val[counterprint] = dvalepoch_val/length(val_data)
+
       print("Iteration: ", j, "; ftrain = ", fval_train[counterprint], "; dtrain = ", dc2val_train[counterprint], "; fval = ", fval_val[counterprint], "; dval = ", dc2val_val[counterprint], ";  IoUtrain:", IoU_hist_train[counterprint,:] , ";  IoUval:" , IoU_hist_val[counterprint,:], "\n")
       counterprint = counterprint + 1
       clear_grad!(HN)
