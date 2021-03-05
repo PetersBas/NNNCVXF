@@ -33,8 +33,12 @@ function Dist2Set(input,P,active_channels)
   return pen_value, pen_grad
 end
 
-function LossTotal(HN,alpha,use_gpu,X0::AbstractArray{T, N},label,P,image_weights,lossf,lossg,active_channels,active_z_slice::Int) where {T, N}
+function LossTotal(HN,alpha,use_gpu,X0::AbstractArray{T, N},label,P,image_weights,lossf,lossg,active_channels,active_z_slice::Int,flip_dims,permute_dims) where {T, N}
   #loss for hyperspectral imaging with 5d input
+    if (isempty(flip_dims) && isempty(permute_dims)) == false
+      X0, label, image_weights = AugmentDataLabel(X0, label, image_weights,flip_dims,permute_dims)#optional: augment data
+    end
+
     Y_curr, Y_new, lgdet = HN.forward(X0,X0)
 
     if isempty(label)==false
@@ -94,7 +98,7 @@ function LossTotal(HN,alpha,use_gpu,X0::AbstractArray{T, N},label,P,image_weight
    return lval, dc2
 end
 
-function LossTotal(HN,alpha,use_gpu,X0::AbstractArray{T, N},label,P,image_weights,lossf,lossg,active_channels,active_z_slice::Array{Any,1}) where {T, N}
+function LossTotal(HN,alpha,use_gpu,X0::AbstractArray{T, N},label,P,image_weights,lossf,lossg,active_channels,active_z_slice::Array{Any,1},flip_dims,permute_dims) where {T, N}
 
     Y_curr, Y_new, lgdet = HN.forward(X0,X0)
     if use_gpu == true
