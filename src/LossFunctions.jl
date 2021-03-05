@@ -1,6 +1,9 @@
 export Dist2Set, LossTotal, IoU
 
-function Dist2Set(input,P,active_channels)
+function Dist2Set(input,P,active_channels,active_z_slice::Int)
+  #active_z_slice is only used for hyperspectral imaging where we map a 3D or 4D
+  #data volume to a 2D map of the earth. this 2D map is located at slice number
+  #active_z_slice in a x-y-z-nchan-n_ex tensor
 
   #initialize some stuff
   size_input = size(input)
@@ -10,6 +13,7 @@ function Dist2Set(input,P,active_channels)
   #use softmax of final network state for constraining
   #the output for segmentation problems (don't use softmax for non-linear regression)
   #input      = softmax(Array(input)[:,:,TrainOpts.channels,:],dims=3)
+
   input      = softmax(input[:,:,active_channels,:],dims=3)
 
   for j in active_channels #loop over channels, each channel has a (different) corresponding projector
@@ -29,14 +33,17 @@ function Dist2Set(input,P,active_channels)
   return pen_value, pen_grad
 end
 
-function LossTotal(HN,alpha,use_gpu,X0,label,P,image_weights,lossf,lossg,active_channels)
+function LossTotal(HN,alpha,use_gpu,X0::AbstractArray{T, N},label,P,image_weights,lossf,lossg,active_channels,active_z_slice::Int) where {T, N}
+
     Y_curr, Y_new, lgdet = HN.forward(X0,X0)
     if use_gpu == true
       Y_new = Y_new|>cpu
     end
-    lval         = lossf(Y_new[:,:,active_channels,1],label,image_weights)
-    (grad,dummy) = lossg(Y_new[:,:,active_channels,1],label,image_weights)
 
+    if isempty(label)==false
+        lval         = lossf(Y_new[:,:,active_z_slice,active_channels,1],label,image_weights)
+        (grad,dummy) = lossg(Y_new[:,:,active_z_slice,active_channels,1],label,image_weights)
+    end
     # # #take equal number of random pixels from each class for the gradient
     # pos_inds = findall(label[:,:,1,1].==1)
     # neg_inds = findall(label[:,:,1,1].==0)
@@ -52,18 +59,96 @@ function LossTotal(HN,alpha,use_gpu,X0,label,P,image_weights,lossf,lossg,active_
 
   if alpha>0
     dc2,dc2_grad = Dist2Set(Y_new,P,active_channels)
-    if (norm(alpha*dc2_grad[:,:,active_channels,1])/norm(grad)) > 10f0
-      @warn "(norm(alpha*dc2_grad[:,:,active_channels,1])/norm(grad)) > 10f0"
-    elseif (norm(alpha*dc2_grad[:,:,active_channels,1])/norm(grad)) < 0.1f0
-      @warn "(norm(alpha*dc2_grad[:,:,active_channels,1])/norm(grad)) < 0.1f0"
-    end
-    grad  = grad + alpha*dc2_grad[:,:,active_channels,1]
+    # if (norm(alpha*dc2_grad[:,:,active_channels,1])/norm(grad)) > 10f0
+    #   @warn "(norm(alpha*dc2_grad[:,:,active_channels,1])/norm(grad)) > 10f0"
+    # elseif (norm(alpha*dc2_grad[:,:,active_channels,1])/norm(grad)) < 0.1f0
+    #   @warn "(norm(alpha*dc2_grad[:,:,active_channels,1])/norm(grad)) < 0.1f0"
+    # end
+
+    #grad  = grad + alpha*dc2_grad[:,:,active_channels,1]
   else
     dc2 = 0f0
   end
 
+  if isempty(label)==false
+      grad  = grad + alpha*dc2_grad[:,:,active_z_slice,active_channels,1]
+  elseif isempty(label)==true
+      grad  = alpha*dc2_grad[:,:,active_z_slice,active_channels,1]
+  end
+
    ΔY_curr= zeros(Float32,size(Y_new))
-   ΔY_curr[:,:,active_channels,1] .= grad
+   ΔY_curr[:,:,active_z_slice,active_channels,1] .= grad
+   ΔY_new = zeros(Float32,size(Y_new))
+
+   if use_gpu == true
+     Y_new   = Y_new|>gpu
+     ΔY_curr = ΔY_curr|>gpu
+     ΔY_new  = ΔY_new|>gpu
+   end
+   ΔY_curr, ΔY_new, Y_curr, Y_new = HN.backward(ΔY_curr, ΔY_new, Y_curr, Y_new)
+
+   return lval, dc2
+end
+
+function LossTotal(HN,alpha,use_gpu,X0::AbstractArray{T, N},label,P,image_weights,lossf,lossg,active_channels) where {T, N}
+
+    Y_curr, Y_new, lgdet = HN.forward(X0,X0)
+    if use_gpu == true
+      Y_new = Y_new|>cpu
+    end
+
+    #initialize gradient
+    if N==4
+      grad = zeros(Float32,size(Y_new[:,:,active_channels,1]))
+    elseif N==5
+      grad = zeros(Float32,size(Y_new[:,:,:,active_channels,1]))
+    end
+
+    if isempty(label)==false
+      if N==4
+        lval         = lossf(Y_new[:,:,active_channels,1],label,image_weights)
+        (grad,dummy) = lossg(Y_new[:,:,active_channels,1],label,image_weights)
+      elseif N==5
+        lval         = lossf(Y_new[:,:,:,active_channels,1],label,image_weights)
+        (grad,dummy) = lossg(Y_new[:,:,:,active_channels,1],label,image_weights)
+      end
+    end
+    # # #take equal number of random pixels from each class for the gradient
+    # pos_inds = findall(label[:,:,1,1].==1)
+    # neg_inds = findall(label[:,:,1,1].==0)
+    # npix = min(length(pos_inds),length(neg_inds))
+    # npix = round(Int,npix/2)
+    # pos_inds_select = shuffle(pos_inds)[1:npix]
+    # neg_inds_select = shuffle(neg_inds)[1:npix]
+    # random_mask = zeros(Float32,size(grad))
+    # random_mask[pos_inds_select,1:2,1].=1
+    # random_mask[neg_inds_select,1:2,1].=1
+
+    #grad .= grad.*random_mask
+
+  if alpha>0
+    dc2,dc2_grad = Dist2Set(Y_new,P,active_channels)
+    # if (norm(alpha*dc2_grad[:,:,active_channels,1])/norm(grad)) > 10f0
+    #   @warn "(norm(alpha*dc2_grad[:,:,active_channels,1])/norm(grad)) > 10f0"
+    # elseif (norm(alpha*dc2_grad[:,:,active_channels,1])/norm(grad)) < 0.1f0
+    #   @warn "(norm(alpha*dc2_grad[:,:,active_channels,1])/norm(grad)) < 0.1f0"
+    # end
+    if N==4
+      grad  = grad + alpha*dc2_grad[:,:,active_channels,1]
+    elseif N==5
+      grad  = grad + alpha*dc2_grad[:,:,:,active_channels,1]
+    end
+  else
+    dc2 = 0f0
+  end
+
+
+   ΔY_curr= zeros(Float32,size(Y_new))
+   if N==4
+     ΔY_curr[:,:,active_channels,1] .= grad
+   elseif N==5
+     ΔY_curr[:,:,:,active_channels,1] .= grad
+   end
    ΔY_new = zeros(Float32,size(Y_new))
 
    if use_gpu == true

@@ -14,6 +14,7 @@ using  SetIntersectionProjection
 using  InvertibleNetworks
 using  Distributions
 import Images
+using CUDA
 
 include("DataSetUtils.jl")
 include("LossFunctions.jl")
