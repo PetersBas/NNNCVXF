@@ -1,4 +1,4 @@
-export PlotCamvidLossUnconstrained, PlotCamvidLossConstrained, PlotDataLabelPredictionCamvid
+export PlotCamvidLossUnconstrained, PlotCamvidLossConstrained, PlotDataLabelPredictionCamvid, PlotHyperspectralLossConstrained, PlotDataLabelPredictionHyperspectral
 
 function PlotHyperspectralLossConstrained(dc2val_train,eval_every)
 
@@ -14,7 +14,7 @@ function PlotHyperspectralLossConstrained(dc2val_train,eval_every)
   savefig("dc2_hyperspectral.png")
 end
 
-function PlotDataLabelPredictionHyperspectral(plt_ind::Int,data,label,HN,active_channels,active_z_slice,tag::String)
+function PlotDataLabelPredictionHyperspectral(plt_ind::Int,data,label,HN,active_channels,active_z_slice,pos_inds_select,tag::String)
 
   #predict
   p1, prediction, ~ = HN.forward(data[plt_ind], data[plt_ind])
@@ -37,20 +37,44 @@ function PlotDataLabelPredictionHyperspectral(plt_ind::Int,data,label,HN,active_
   pred_thres = zeros(Int,size(prediction)[1:2])
   pos_inds   = findall(prediction[:,:,active_z_slice,1,1] .> prediction[:,:,active_z_slice,2,1])
   pred_thres[pos_inds] .= 1
+  pred_thres2 = zeros(Int,size(prediction)[1:2])
+  pos_inds   = findall(prediction[:,:,active_z_slice,1,1] .< prediction[:,:,active_z_slice,2,1])
+  pred_thres2[pos_inds] .= 1
   figure(figsize=(5,4));
   imshow(Array(pred_thres)[3:end-2,3:end-2],vmin=vmi,vmax=vma);PyPlot.title(string("Prediction - ",tag));#xlabel("x");ylabel("y")
+  for i=1:length(pos_inds_select)
+      scatter(pos_inds_select[i][2],pos_inds_select[i][1],c="r",alpha=0.5)
+  end
   savefig(string(tag,"_prediction.png"))#,bbox="tight")
 
+  println(length(findall(pred_thres.>0))/prod(size(pred_thres)[1:2]))
+
+  figure(figsize=(5,4));
+  imshow(labels[plt_ind][:,:,33,1,1][3:end-2,3:end-2],vmin=vmi,vmax=vma);PyPlot.title(string("Labels - ",tag));#xlabel("x");ylabel("y")
+  for i=1:length(pos_inds_select)
+      scatter(pos_inds_select[i][2],pos_inds_select[i][1],c="r",alpha=0.5)
+  end
+  savefig(string(tag,"_labels.png"))#,bbox="tight")
+
+  figure(figsize=(5,4));
+  imshow(Array(pred_thres)[3:end-2,3:end-2]-labels[plt_ind][:,:,33,1,1][3:end-2,3:end-2],vmin=-1,vmax=1);PyPlot.title(string("Difference - ",tag));#xlabel("x");ylabel("y")
+  savefig(string(tag,"_error.png"))#,bbox="tight")
+
+  figure(figsize=(5,4));
+  imshow(Array(pred_thres2)[3:end-2,3:end-2]-labels[plt_ind][:,:,33,1,1][3:end-2,3:end-2],vmin=-1,vmax=1);PyPlot.title(string("Difference - ",tag));#xlabel("x");ylabel("y")
+  savefig(string(tag,"_error2.png"))#,bbox="tight")
+
   #Plot data+prediction
-  figure(figsize=(5,4))
+  figure(figsize=(9,5))
   subplot(1,2,1);
-  imshow(data[plt_ind][3:end-2,3:end-2,40,1,1])
-  imshow(Array(pred_thres)[3:end-2,3:end-2],alpha=0.45)
+  imshow(data[plt_ind][3:end-2,3:end-2,40,1,1],cmap="Greys")
+  imshow(Array(pred_thres)[3:end-2,3:end-2],alpha=0.30)
   title(string("Data T1 + Prediction - ",tag))
   subplot(1,2,2);
-  imshow(data[plt_ind][3:end-2,3:end-2,40,2,1])
-  imshow(Array(pred_thres)[3:end-2,3:end-2],alpha=0.45)
+  imshow(data[plt_ind][3:end-2,3:end-2,40,2,1],cmap="Greys")
+  imshow(Array(pred_thres)[3:end-2,3:end-2],alpha=0.30)
   title(string("Data T2 + Prediction - ",tag))
+  tight_layout()
   savefig(string(tag,"data_plus_pred.png"))
 
   figure();
