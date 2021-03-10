@@ -1,4 +1,4 @@
-export Dist2Set, LossTotal, IoU
+export Dist2Set, LossTotal, IoU, g_CQ, MultipleSplitFeasCQ_fun_grad
 
 function Dist2Set(input,P,active_channels)
   #active_z_slice is only used for hyperspectral imaging where we map a 3D or 4D
@@ -54,7 +54,7 @@ function g_CQ(input,TD_OP,P_sub,alpha_CQ,active_channels)
     pen_value_slice    = 0f0 #
     #P_input            = P[j](input_slice) #project onto constraint set (can be an intersection)
     #pen_value_slice    = 0.5f0*norm(vec(P_input)-vec(input_slice))^2 #squared point-to-set distance functino
-    f_temp,g_temp = MultipleSplitFeasCQ_fun_grad(vec(deepcopy(input_slice)),TD_OP[j],P_sub[j],alpha)
+    f_temp,g_temp = MultipleSplitFeasCQ_fun_grad(vec(deepcopy(input_slice)),TD_OP[j],P_sub[j],alpha_CQ[j])
     pen_grad[:,:,j,1] .= g_temp # gradient of point-to-set distance function
 
     pen_value = pen_value + f_temp #accumulate penalty value (loss) over channels
@@ -65,6 +65,30 @@ function g_CQ(input,TD_OP,P_sub,alpha_CQ,active_channels)
   pen_grad[:,:,active_channels,1] .= ∇softmax(pen_grad[:,:,active_channels,1], input[:,:,active_channels,1]; dims=3)
 
   return pen_value, pen_grad
+end
+
+function MultipleSplitFeasCQ_fun_grad(x::AbstractVector{T},A,P_sub,alpha::AbstractVector) where T
+
+# returns the gradient of the sum of squared distance functions for the split-feasibility
+#problem: A_i x = y_i , y_i \in C_i
+# f = \sum_{i=1}^p \alpha_i/2 \| P_C_i (A_i x) - A_i x \|_2^2
+# g = \sum_{i=1}^p \alpha_i/2 A_i^t (A_i x - P_C_i (A_i x) )
+
+#serial implementation
+#(each projection or mat-vec can still use multiple threads)
+
+f    = zeros(T,length(alpha))#allocate function value per constraint/linear operator
+ng   = zeros(T,length(alpha))#allocate norm of gradient per constraint/linear operator
+grad = zeros(T,length(x))
+
+for i = 1:length(A)
+  y     = A[i]*x
+  PcAx  = P_sub[i](deepcopy(y))
+  f[i]  = alpha[i]/2 .* norm(PcAx - y,2).^2
+  grad .= grad .+ A[i]'*(y.-PcAx)
+end
+
+return sum(f),grad
 end
 
 function LossTotal(HN,alpha,use_gpu,X0::AbstractArray{T, N},label,P,image_weights,lossf,lossg,active_channels,active_z_slice::Int,flip_dims,permute_dims) where {T, N}
@@ -173,6 +197,7 @@ function LossTotal(HN,alpha,use_gpu,X0::AbstractArray{T, N},label,P,image_weight
   if alpha>0
     if P_mode == "Proj_intersection"
       dc2,dc2_grad = Dist2Set(Y_new,P,active_channels)
+      dc2_grad .= alpha.*dc2_grad
     elseif P_mode == "g_CQ"
       dc2,dc2_grad = g_CQ(Y_new,TD_OP,P_sub,alpha_CQ,active_channels)
     end
@@ -182,9 +207,9 @@ function LossTotal(HN,alpha,use_gpu,X0::AbstractArray{T, N},label,P,image_weight
     #   @warn "(norm(alpha*dc2_grad[:,:,active_channels,1])/norm(grad)) < 0.1f0"
     # end
     if N==4
-      grad  = grad + alpha*dc2_grad[:,:,active_channels,1]
+      grad  = grad + dc2_grad[:,:,active_channels,1]
     elseif N==5
-      grad  = grad + alpha*dc2_grad[:,:,:,active_channels,1]
+      grad  = grad + dc2_grad[:,:,:,active_channels,1]
     end
   else
     dc2 = 0f0
