@@ -55,7 +55,7 @@ function g_CQ(input,TD_OP,P_sub,alpha_CQ,active_channels)
     #P_input            = P[j](input_slice) #project onto constraint set (can be an intersection)
     #pen_value_slice    = 0.5f0*norm(vec(P_input)-vec(input_slice))^2 #squared point-to-set distance functino
     f_temp,g_temp = MultipleSplitFeasCQ_fun_grad(vec(deepcopy(input_slice)),TD_OP[j],P_sub[j],alpha_CQ[j])
-    pen_grad[:,:,j,1] .= g_temp # gradient of point-to-set distance function
+    pen_grad[:,:,j,1] .= reshape(g_temp,size(input_slice)) # gradient of point-to-set distance function
 
     pen_value = pen_value + f_temp #accumulate penalty value (loss) over channels
   end #end channels loop
