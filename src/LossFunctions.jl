@@ -345,36 +345,36 @@ function LossTotal(HN,alpha,use_gpu,X0::AbstractArray{T, N},label,P,image_weight
    return lval, dc2
 end
 
-function IoU(HN,data,labels)
-threshold = 0.65
-IoU_pos = zeros(length(data))
-IoU_neg = zeros(length(data))
-
-  for i=1:length(data)
-    #prediction = CAE(ϕ,KnetArray(data[i]),h)
-    ~, prediction, ~ = HN.forward(data[i],data[i])
-    prediction = prediction |> cpu
-    prediction[:,:,1:2,1].=softmax(prediction[:,:,1:2,1],dims=3);
-
-
-    pred_thres = zeros(Int,size(prediction)[1:2])
-    pos_inds   = findall(prediction[:,:,1] .> threshold)
-    pred_thres[pos_inds] .= 1
-
-    #plot pixel accuracy per time-slice
-    prediction_for_acc = pred_thres[5:end-4,5:end-4]
-    mask_for_acc       = labels[i][5:end-4,5:end-4,1]
-
-    pos_pred_inds = findall(prediction_for_acc.==1)
-    neg_pred_inds = findall(prediction_for_acc.==0)
-
-    true_pos_inds = findall(mask_for_acc .== 1)
-    true_neg_inds = findall(mask_for_acc .== 0)
-
-    #IoU
-    IoU_pos[i] = length(intersect(pos_pred_inds,true_pos_inds))/length(union(pos_pred_inds,true_pos_inds))
-    IoU_neg[i] = length(intersect(neg_pred_inds,true_neg_inds))/length(union(neg_pred_inds,true_neg_inds))
-  end
-
-return IoU_pos, IoU_neg
-end
+# function IoU(HN,data,labels)
+# threshold = 0.65
+# IoU_pos = zeros(length(data))
+# IoU_neg = zeros(length(data))
+#
+#   for i=1:length(data)
+#     #prediction = CAE(ϕ,KnetArray(data[i]),h)
+#     ~, prediction, ~ = HN.forward(data[i],data[i])
+#     prediction = prediction |> cpu
+#     prediction[:,:,1:2,1].=softmax(prediction[:,:,1:2,1],dims=3);
+#
+#
+#     pred_thres = zeros(Int,size(prediction)[1:2])
+#     pos_inds   = findall(prediction[:,:,1] .> threshold)
+#     pred_thres[pos_inds] .= 1
+#
+#     #plot pixel accuracy per time-slice
+#     prediction_for_acc = pred_thres[5:end-4,5:end-4]
+#     mask_for_acc       = labels[i][5:end-4,5:end-4,1]
+#
+#     pos_pred_inds = findall(prediction_for_acc.==1)
+#     neg_pred_inds = findall(prediction_for_acc.==0)
+#
+#     true_pos_inds = findall(mask_for_acc .== 1)
+#     true_neg_inds = findall(mask_for_acc .== 0)
+#
+#     #IoU
+#     IoU_pos[i] = length(intersect(pos_pred_inds,true_pos_inds))/length(union(pos_pred_inds,true_pos_inds))
+#     IoU_neg[i] = length(intersect(neg_pred_inds,true_neg_inds))/length(union(neg_pred_inds,true_neg_inds))
+#   end
+#
+# return IoU_pos, IoU_neg
+# end
