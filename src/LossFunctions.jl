@@ -194,7 +194,7 @@ function LossTotal(HN,alpha,use_gpu,X0::AbstractArray{T, N},label,P,image_weight
 
     #grad .= grad.*random_mask
 
-  if alpha>0
+  if alpha[1][1]>0
     if P_mode == "Proj_intersection"
       dc2,dc2_grad = Dist2Set(Y_new,P,active_channels)
       dc2_grad .= alpha.*dc2_grad
