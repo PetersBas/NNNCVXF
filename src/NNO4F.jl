@@ -23,4 +23,21 @@ include("Train.jl")
 include("PlotUtils.jl")
 include("AugmentDataLabel.jl")
 
+export TrOpts
+
+mutable struct TrOpts
+           eval_every      ::Int
+           alpha           ::Union{AbstractFloat,Vector{AbstractFloat},Array{Any}}
+           batchsize       ::Int
+           use_gpu         ::Bool
+           lossf
+           lossg
+           active_channels :: Array{Int}
+           flip_dims       ::Array{Int}
+           permute_dims    ::Array{Int}
+           maxiter
+           opt
+           #active_z_slice :: Int
+end
+
 end #end module

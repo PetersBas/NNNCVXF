@@ -1,6 +1,6 @@
 export Dist2Set, LossTotal, IoU, g_CQ, MultipleSplitFeasCQ_fun_grad
 
-function Dist2Set(input,P,active_channels)
+function Dist2Set(input,P,TrOpts)
   #active_z_slice is only used for hyperspectral imaging where we map a 3D or 4D
   #data volume to a 2D map of the earth. this 2D map is located at slice number
   #active_z_slice in a x-y-z-nchan-n_ex tensor
@@ -16,7 +16,7 @@ function Dist2Set(input,P,active_channels)
 
   input      = softmax(input[:,:,active_channels,:],dims=3)
 
-  for j in active_channels #loop over channels, each channel has a (different) corresponding projector
+  for j in TrOpts.active_channels #loop over channels, each channel has a (different) corresponding projector
     input_slice        = input[:,:,j,1]
     pen_value_slice    = 0f0 #
     P_input            = P[j](input_slice) #project onto constraint set (can be an intersection)
@@ -28,12 +28,12 @@ function Dist2Set(input,P,active_channels)
 
   #at this point,the softmax of the network output has been projected onto the intersection. Now we need to 'complete' the gradient
   #via the last part of the chain-rule for distance-function-squared and softmax
-  pen_grad[:,:,active_channels,1] .= ∇softmax(pen_grad[:,:,active_channels,1], input[:,:,active_channels,1]; dims=3)
+  pen_grad[:,:,TrOpts.active_channels,1] .= ∇softmax(pen_grad[:,:,TrOpts.active_channels,1], input[:,:,TrOpts.active_channels,1]; dims=3)
 
   return pen_value, pen_grad
 end
 
-function g_CQ(input,TD_OP,P_sub,alpha_CQ,active_channels)
+function g_CQ(input,TD_OP,P_sub,TrOpts)
   #active_z_slice is only used for hyperspectral imaging where we map a 3D or 4D
   #data volume to a 2D map of the earth. this 2D map is located at slice number
   #active_z_slice in a x-y-z-nchan-n_ex tensor
@@ -47,14 +47,14 @@ function g_CQ(input,TD_OP,P_sub,alpha_CQ,active_channels)
   #the output for segmentation problems (don't use softmax for non-linear regression)
   #input      = softmax(Array(input)[:,:,TrainOpts.channels,:],dims=3)
 
-  input      = softmax(input[:,:,active_channels,:],dims=3)
+  input      = softmax(input[:,:,TrOpts.active_channels,:],dims=3)
 
-  for j in active_channels #loop over channels, each channel has a (different) corresponding projector
+  for j in TrOpts.active_channels #loop over channels, each channel has a (different) corresponding projector
     input_slice        = input[:,:,j,1]
     pen_value_slice    = 0f0 #
     #P_input            = P[j](input_slice) #project onto constraint set (can be an intersection)
     #pen_value_slice    = 0.5f0*norm(vec(P_input)-vec(input_slice))^2 #squared point-to-set distance functino
-    f_temp,g_temp = MultipleSplitFeasCQ_fun_grad(vec(deepcopy(input_slice)),TD_OP[j],P_sub[j],alpha_CQ[j])
+    f_temp,g_temp = MultipleSplitFeasCQ_fun_grad(vec(deepcopy(input_slice)),TD_OP[j],P_sub[j],TrOpts.alpha_CQ[j])
     pen_grad[:,:,j,1] .= reshape(g_temp,size(input_slice)) # gradient of point-to-set distance function
 
     pen_value = pen_value + f_temp #accumulate penalty value (loss) over channels
@@ -62,7 +62,7 @@ function g_CQ(input,TD_OP,P_sub,alpha_CQ,active_channels)
 
   #at this point,the softmax of the network output has been projected onto the intersection. Now we need to 'complete' the gradient
   #via the last part of the chain-rule for distance-function-squared and softmax
-  pen_grad[:,:,active_channels,1] .= ∇softmax(pen_grad[:,:,active_channels,1], input[:,:,active_channels,1]; dims=3)
+  pen_grad[:,:,TrOpts.active_channels,1] .= ∇softmax(pen_grad[:,:,TrOpts.active_channels,1], input[:,:,TrOpts.active_channels,1]; dims=3)
 
   return pen_value, pen_grad
 end
@@ -91,10 +91,12 @@ end
 return sum(f),grad
 end
 
-function LossTotal(HN,alpha,use_gpu,X0::AbstractArray{T, N},label,P,image_weights,lossf,lossg,active_channels,active_z_slice::Int,flip_dims,permute_dims) where {T, N}
+function LossTotal(HN,TrOpts,X0::AbstractArray{T, N},label,P,image_weights,active_z_slice::Int) where {T, N}
   #loss for hyperspectral imaging with 5d input
+  alpha=TrOpts.alpha; use_gpu=TrOpts.use_gpu;,lossf=TrOpts.lossf; lossg=TrOpts.lossg;
+
     if (isempty(flip_dims) && isempty(permute_dims)) == false
-      X0, label, image_weights = AugmentDataLabel(X0, label, image_weights,flip_dims,permute_dims)#optional: augment data
+      X0, label, image_weights = AugmentDataLabel(X0, label, image_weights,TrOpts)#optional: augment data
     end
 
     Y_curr, Y_new, lgdet = HN.forward(X0,X0)
@@ -122,7 +124,7 @@ function LossTotal(HN,alpha,use_gpu,X0::AbstractArray{T, N},label,P,image_weight
     if use_gpu == true
       Y_new = Y_new|>cpu
     end
-    dc2,dc2_grad = Dist2Set(Y_new[:,:,active_z_slice,:,:],P,active_channels)
+    dc2,dc2_grad = Dist2Set(Y_new[:,:,active_z_slice,:,:],P,TrOpts)
     # if (norm(alpha*dc2_grad[:,:,active_channels,1])/norm(grad)) > 10f0
     #   @warn "(norm(alpha*dc2_grad[:,:,active_channels,1])/norm(grad)) > 10f0"
     # elseif (norm(alpha*dc2_grad[:,:,active_channels,1])/norm(grad)) < 0.1f0
@@ -268,7 +270,8 @@ IoU_neg = zeros(length(data))
 return IoU_pos, IoU_neg
 end
 
-function LossTotal(HN,alpha,use_gpu,X0::AbstractArray{T, N},label,P,image_weights,lossf,lossg,active_channels,active_z_slice::Array{Any,1},flip_dims,permute_dims) where {T, N}
+function LossTotal(HN,TrOpts,X0::AbstractArray{T, N},label,P,image_weights,active_channels,active_z_slice::Array{Any,1}) where {T, N}
+    alpha=TrOpts.alpha; use_gpu=TrOpts.use_gpu;,lossf=TrOpts.lossf; lossg=TrOpts.lossg;
 
     Y_curr, Y_new, lgdet = HN.forward(X0,X0)
     if use_gpu == true
@@ -308,7 +311,7 @@ function LossTotal(HN,alpha,use_gpu,X0::AbstractArray{T, N},label,P,image_weight
 
   if alpha>0
     #if P_mode == "Proj_intersection"
-      dc2,dc2_grad = Dist2Set(Y_new,P,active_channels)
+      dc2,dc2_grad = Dist2Set(Y_new,P,TrOpts)
     #elseif P_mode == "g_CQ"
     #  dc2,dc2_grad = g_CQ(Y_new,TD_OP,P_sub,alpha_CQ,active_channels)
     #end
@@ -344,37 +347,3 @@ function LossTotal(HN,alpha,use_gpu,X0::AbstractArray{T, N},label,P,image_weight
 
    return lval, dc2
 end
-
-# function IoU(HN,data,labels)
-# threshold = 0.65
-# IoU_pos = zeros(length(data))
-# IoU_neg = zeros(length(data))
-#
-#   for i=1:length(data)
-#     #prediction = CAE(ϕ,KnetArray(data[i]),h)
-#     ~, prediction, ~ = HN.forward(data[i],data[i])
-#     prediction = prediction |> cpu
-#     prediction[:,:,1:2,1].=softmax(prediction[:,:,1:2,1],dims=3);
-#
-#
-#     pred_thres = zeros(Int,size(prediction)[1:2])
-#     pos_inds   = findall(prediction[:,:,1] .> threshold)
-#     pred_thres[pos_inds] .= 1
-#
-#     #plot pixel accuracy per time-slice
-#     prediction_for_acc = pred_thres[5:end-4,5:end-4]
-#     mask_for_acc       = labels[i][5:end-4,5:end-4,1]
-#
-#     pos_pred_inds = findall(prediction_for_acc.==1)
-#     neg_pred_inds = findall(prediction_for_acc.==0)
-#
-#     true_pos_inds = findall(mask_for_acc .== 1)
-#     true_neg_inds = findall(mask_for_acc .== 0)
-#
-#     #IoU
-#     IoU_pos[i] = length(intersect(pos_pred_inds,true_pos_inds))/length(union(pos_pred_inds,true_pos_inds))
-#     IoU_neg[i] = length(intersect(neg_pred_inds,true_neg_inds))/length(union(neg_pred_inds,true_neg_inds))
-#   end
-#
-# return IoU_pos, IoU_neg
-# end
