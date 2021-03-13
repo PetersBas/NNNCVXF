@@ -15,6 +15,7 @@ using  InvertibleNetworks
 using  Distributions
 import Images
 using CUDA
+using Parameters
 
 include("DataSetUtils.jl")
 include("LossFunctions.jl")
@@ -25,18 +26,18 @@ include("AugmentDataLabel.jl")
 
 export TrOpts
 
-mutable struct TrOpts
-           eval_every      ::Int
-           alpha           ::Union{AbstractFloat,Vector{AbstractFloat},Array{Any}}
-           batchsize       ::Int
-           use_gpu         ::Bool
-           lossf
-           lossg
-           active_channels :: Array{Int}
-           flip_dims       ::Array{Int}
-           permute_dims    ::Array{Int}
-           maxiter
-           opt
+@with_kw  mutable struct TrOpts
+           eval_every      ::Int = 5
+           alpha           ::Union{AbstractFloat,Vector{AbstractFloat},Array{Any}} = []
+           batchsize       ::Int = 1
+           use_gpu         ::Bool = true
+           lossf           ::Any  = []
+           lossg           ::Any  = []
+           active_channels ::Array{Int} = [1]
+           flip_dims       ::Array{Int}  = []
+           permute_dims    ::Array{Int}  = []
+           maxiter         ::Array{Int}         = [10]
+           opt             ::Any         = [Flux.ADAM(1f-3)]
            #active_z_slice :: Int
 end
 

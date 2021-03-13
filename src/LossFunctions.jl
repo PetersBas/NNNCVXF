@@ -93,7 +93,7 @@ end
 
 function LossTotal(HN,TrOpts,X0::AbstractArray{T, N},label,P,image_weights,active_z_slice::Int) where {T, N}
   #loss for hyperspectral imaging with 5d input
-  alpha=TrOpts.alpha; use_gpu=TrOpts.use_gpu;,lossf=TrOpts.lossf; lossg=TrOpts.lossg;
+  alpha=TrOpts.alpha; use_gpu=TrOpts.use_gpu; lossf=TrOpts.lossf; lossg=TrOpts.lossg;
 
     if (isempty(flip_dims) && isempty(permute_dims)) == false
       X0, label, image_weights = AugmentDataLabel(X0, label, image_weights,TrOpts)#optional: augment data
@@ -271,7 +271,7 @@ return IoU_pos, IoU_neg
 end
 
 function LossTotal(HN,TrOpts,X0::AbstractArray{T, N},label,P,image_weights,active_channels,active_z_slice::Array{Any,1}) where {T, N}
-    alpha=TrOpts.alpha; use_gpu=TrOpts.use_gpu;,lossf=TrOpts.lossf; lossg=TrOpts.lossg;
+    alpha=TrOpts.alpha; use_gpu=TrOpts.use_gpu; lossf=TrOpts.lossf; lossg=TrOpts.lossg;
 
     Y_curr, Y_new, lgdet = HN.forward(X0,X0)
     if use_gpu == true

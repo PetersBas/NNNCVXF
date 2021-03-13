@@ -3,16 +3,16 @@ export Train
 function Train(HN,TrOpts,train_data,val_data,train_labels,val_labels,P,image_weights_train,image_weights_val)
 
 
-  fval_train   = zeros(Float32,maxiter)
-  fval_val     = zeros(Float32,maxiter)
-  dc2val_train = zeros(Float32,maxiter)
-  dc2val_val   = zeros(Float32,maxiter)
-  IoU_hist_train = zeros(Float32,maxiter,2)
-  IoU_hist_val   = zeros(Float32,maxiter,2)
+  fval_train   = zeros(Float32,TrOpts.maxiter)
+  fval_val     = zeros(Float32,TrOpts.maxiter)
+  dc2val_train = zeros(Float32,TrOpts.maxiter)
+  dc2val_val   = zeros(Float32,TrOpts.maxiter)
+  IoU_hist_train = zeros(Float32,TrOpts.maxiter,2)
+  IoU_hist_val   = zeros(Float32,TrOpts.maxiter,2)
   counterprint = 1
 
-  for j=1:maxiter
-    for k=1:batchsize
+  for j=1:TrOpts.maxiter
+    for k=1:TrOpts.batchsize
       rand_ind = randperm(length(train_data))[1]
       # Evaluate objective and gradients
       fval, dc2val = LossTotal(HN,TrOpts,train_data[rand_ind],train_labels[rand_ind],P[rand_ind],image_weights_train[rand_ind],active_z_slice)
@@ -23,7 +23,7 @@ function Train(HN,TrOpts,train_data,val_data,train_labels,val_labels,P,image_wei
     end
     clear_grad!(HN)
 
-    if mod(j, eval_every) == 0
+    if mod(j, TrOpts.eval_every) == 0
       if isempty(train_labels[1])==false
         ioupos_train,iouneg_train = IoU(HN,train_data,train_labels)
         ioupos_train = ioupos_train[ioupos_train.>0.0]
