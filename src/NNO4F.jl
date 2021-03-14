@@ -36,8 +36,8 @@ export TrOpts
            active_channels ::Array{Int} = [1]
            flip_dims       ::Array{Int}  = []
            permute_dims    ::Array{Int}  = []
-           maxiter         ::Array{Int}         = [10]
-           opt             ::Any         = [Flux.ADAM(1f-3)]
+           maxiter         ::Int         = 10
+           opt             ::Any         = Flux.ADAM(1f-3)
            #active_z_slice :: Int
 end
 
