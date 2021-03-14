@@ -1,2 +1,2 @@
-# NNO4F
-Optimization tools to train neural networks to satisfy constraints, intersections of constraint sets, and sums of constraint sets
+# NNNCVXF
+*N*eural *N*etwork training via *N*on-*C*on*v*e*x* *F*easibility
