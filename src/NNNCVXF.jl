@@ -24,21 +24,29 @@ include("Train.jl")
 include("PlotUtils.jl")
 include("AugmentDataLabel.jl")
 
-export TrOpts
+export TrOpts, Log
 
 @with_kw  mutable struct TrOpts
-           eval_every      ::Int = 5
+           eval_every      ::Int  = 5
            alpha           ::Union{AbstractFloat,Vector{AbstractFloat},Array{Any}} = []
-           batchsize       ::Int = 1
+           batchsize       ::Int  = 1
            use_gpu         ::Bool = true
            lossf           ::Any  = []
            lossg           ::Any  = []
-           active_channels ::Array{Int} = [1]
+           active_channels ::Array{Int}  = [1]
            flip_dims       ::Array{Int}  = []
            permute_dims    ::Array{Int}  = []
            maxiter         ::Int         = 10
            opt             ::Any         = Flux.ADAM(1f-3)
-           #active_z_slice :: Int
+end
+
+@with_kw mutable struct Log
+  train     = []
+  val       = []
+  dc2_train = []
+  dc2_val   = []
+  IoU_train = []
+  IoU_val   = []
 end
 
 end #end module

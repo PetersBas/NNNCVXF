@@ -1,16 +1,11 @@
 export PlotCamvidLossUnconstrained, PlotCamvidLossConstrained, PlotDataLabelPredictionCamvid, PlotHyperspectralLossConstrained, PlotDataLabelPredictionHyperspectral
 
-function PlotHyperspectralLossConstrained(dc2val_train,eval_every)
+function PlotHyperspectralLossConstrained(logs,eval_every)
 
-  dc2_log_train = [];
-  for i=1:length(dc2val_train)
-    dc2_log_train   = vcat(dc2_log_train,dc2val_train[i])
-  end
-
-  iter_ax = range(0,step=eval_every,length=length(dc2_log_train))
+  iter_ax = range(0,step=eval_every,length=length(logs.dc2_train))
 
   figure(figsize=(5,4));
-  semilogy(iter_ax,dc2_log_train);title("Squared distance to set");xlabel("Iteration")
+  semilogy(iter_ax,ogs.dc2_train);title("Squared distance to set");xlabel("Iteration")
   tight_layout()
   savefig("dc2_hyperspectral.png")
 end
@@ -39,7 +34,7 @@ function PlotDataLabelPredictionHyperspectral(plt_ind::Int,data,label,HN,active_
   pos_inds   = findall(prediction[:,:,active_z_slice,1,1] .> prediction[:,:,active_z_slice,2,1])
   pred_thres[pos_inds] .= 1
   pred_thres2 = zeros(Int,size(prediction)[1:2])
-  pos_inds   = findall(prediction[:,:,active_z_slice,1,1] .< prediction[:,:,active_z_slice,2,1])
+  pos_inds    = findall(prediction[:,:,active_z_slice,1,1] .< prediction[:,:,active_z_slice,2,1])
   pred_thres2[pos_inds] .= 1
   figure(figsize=(5,4));
   imshow(Array(pred_thres)[3:end-2,3:end-2],vmin=vmi,vmax=vma);PyPlot.title(string("Prediction"));#xlabel("x");ylabel("y")
@@ -189,69 +184,37 @@ function PlotDataLabelPredictionHyperspectral(plt_ind::Int,data,label,HN,active_
 
 end
 
-function PlotCamvidLossUnconstrained(fval_train,fval_val,IoU_hist_train,IoU_hist_val,eval_every)
+function PlotCamvidLossUnconstrained(logs,eval_every)
 
-  f_log_train   = [];
-  f_log_val     = [];
-  # dc2_log_train = [];
-  # dc2_log_val   = [];
-  IoU_log_train = [[] []];
-  IoU_log_val   = [[] []];
-
-  for i=1:length(fval_train)
-    f_log_train     = vcat(f_log_train,fval_train[i])
-    f_log_val       = vcat(f_log_val,fval_val[i])
-    # dc2_log_train = vcat(dc2_log_train,fval_train[i])
-    # dc2_log_val   = vcat(dc2_log_val,fval_train[i])
-    IoU_log_train   = vcat(IoU_log_train,IoU_hist_train[i])
-    IoU_log_val     = vcat(IoU_log_val,IoU_hist_val[i])
-  end
-
-  iter_ax = range(0,step=eval_every,length=length(f_log_train))
+  iter_ax = range(0,step=eval_every,length=length(logs.train))
 
   figure(figsize=(13,4));
-  subplot(1,2,1);plot(iter_ax,f_log_train,label="train");title("Training loss labels");
-  subplot(1,2,1);plot(iter_ax,f_log_val,"--",label="validation");legend();title("Training loss labels");
+  subplot(1,2,1);plot(iter_ax,logs.train,label="train");title("Training loss labels");
+  subplot(1,2,1);plot(iter_ax,logs.val,"--",label="validation");legend();title("Training loss labels");
   xlabel("Iteration number");
-  subplot(1,2,2);plot(iter_ax,IoU_log_train[:,1],label="class1 - train");title("IoU");
-  subplot(1,2,2);plot(iter_ax,IoU_log_train[:,2],label="class2 - train");legend();title("IoU");
-  subplot(1,2,2);plot(iter_ax,IoU_log_val[:,1],"--",label="class1 - validation");title("IoU");
-  subplot(1,2,2);plot(iter_ax,IoU_log_val[:,2],"--",label="class2 - validation");legend();title("IoU");
+  subplot(1,2,2);plot(iter_ax,logs.IoU_train[:,1],label="class1 - train");title("IoU");
+  subplot(1,2,2);plot(iter_ax,logs.IoU_train[:,2],label="class2 - train");legend();title("IoU");
+  subplot(1,2,2);plot(iter_ax,logs.IoU_val[:,1],"--",label="class1 - validation");title("IoU");
+  subplot(1,2,2);plot(iter_ax,logs.IoU_val[:,2],"--",label="class2 - validation");legend();title("IoU");
   xlabel("Iteration number");
   tight_layout()
   savefig("loss_unconstrained.png")
 
 end
 
-function PlotCamvidLossConstrained(fval_train,fval_val,IoU_hist_train,IoU_hist_val,dc2val_train,eval_every)
+function PlotCamvidLossConstrained(logs,eval_every)
 
-  f_log_train   = [];
-  f_log_val     = [];
-  dc2_log_train = [];
-  #dc2_log_val   = [];
-  IoU_log_train = [[] []];
-  IoU_log_val   = [[] []];
-
-  for i=1:length(fval_train)
-    f_log_train     = vcat(f_log_train,fval_train[i])
-    f_log_val       = vcat(f_log_val,fval_val[i])
-    dc2_log_train   = vcat(dc2_log_train,dc2val_train[i])
-    #dc2_log_val   = vcat(dc2_log_val,fval_train[i])
-    IoU_log_train   = vcat(IoU_log_train,IoU_hist_train[i])
-    IoU_log_val     = vcat(IoU_log_val,IoU_hist_val[i])
-  end
-
-  iter_ax = range(0,step=eval_every,length=length(dc2_log_train))
+  iter_ax = range(0,step=eval_every,length=length(logs.dc2_train))
   figure(figsize=(13,4));
-  subplot(1,3,1);semilogy(iter_ax,dc2_log_train,label="train");legend();title("Squared distance-to-set");
+  subplot(1,3,1);semilogy(iter_ax,logs.dc2_train,label="train");legend();title("Squared distance-to-set");
   xlabel("Iteration number");
-  subplot(1,3,2);plot(iter_ax,f_log_train,label="train");title("Training loss labels");
-  subplot(1,3,2);plot(iter_ax,f_log_val,"--",label="validation");legend();title("Training loss labels");
+  subplot(1,3,2);plot(iter_ax,logs.train,label="train");title("Training loss labels");
+  subplot(1,3,2);plot(iter_ax,logs.val,"--",label="validation");legend();title("Training loss labels");
   xlabel("Iteration number");
-  subplot(1,3,3);plot(iter_ax,IoU_log_train[:,1],label="class1 - train");title("IoU");
-  subplot(1,3,3);plot(iter_ax,IoU_log_train[:,2],label="class2 - train");legend();title("IoU");
-  subplot(1,3,3);plot(iter_ax,IoU_log_val[:,1],"--",label="class1 - validation");title("IoU");
-  subplot(1,3,3);plot(iter_ax,IoU_log_val[:,2],"--",label="class2 - validation");legend();title("IoU");
+  subplot(1,3,3);plot(iter_ax,logs.IoU_train[:,1],label="class1 - train");title("IoU");
+  subplot(1,3,3);plot(iter_ax,logs.IoU_train[:,2],label="class2 - train");legend();title("IoU");
+  subplot(1,3,3);plot(iter_ax,logs.IoU_val[:,1],"--",label="class1 - validation");title("IoU");
+  subplot(1,3,3);plot(iter_ax,logs.IoU_val[:,2],"--",label="class2 - validation");legend();title("IoU");
   xlabel("Iteration number");
   tight_layout()
   savefig("loss_constrained.png")
