@@ -1,4 +1,4 @@
-module NNO4F
+module NNNCVXF
 
 using LinearAlgebra
 using Random
