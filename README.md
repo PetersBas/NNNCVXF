@@ -35,7 +35,7 @@ This software is not intended as a general neural network toolbox. Some generali
 ## Required Data:
 Data is provided for the single image segmentation with corruption examples [Zebra](https://github.com/PetersBas/NNNCVXF/blob/main/examples/zebra_stripes_minkowski.jl) [Bike](https://github.com/PetersBas/NNNCVXF/blob/main/examples/motorbike_stripes_minkowski.jl). Data files are larger for [Time-Lapse HyperSpectral land-use segmentation](https://github.com/PetersBas/NNNCVXF/blob/main/examples/TimeLapseHyperspectralConstrained.jl) and [CamVid street scenes](https://github.com/PetersBas/NNNCVXF/blob/main/examples/ConstrainedCamvid.jl). Download instructions are included in those two scripts.
 
-##Basic Code Functionality:
+## Basic Code Functionality:
 All examples follow the same workflow
  1. Set up training (and possibly validation) data and labels (if any are available).
  2. Set up projection operators that project onto the intersection of constraint sets, implemented by [SetIntersectionProjection](https://github.com/slimgroup/SetIntersectionProjection.jl)
