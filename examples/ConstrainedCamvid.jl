@@ -142,21 +142,13 @@ opt     = [Flux.ADAM(1f-3) Flux.ADAM(1f-4)]
     train_data = train_data|>gpu
   end
 
-  f_log_train   = Vector{Any}(undef,length(maxiter));
-  f_log_val     = Vector{Any}(undef,length(maxiter));
-  dc2_log_train = Vector{Any}(undef,length(maxiter));
-  dc2_log_val   = Vector{Any}(undef,length(maxiter));
-  IoU_log_train = Vector{Any}(undef,length(maxiter));
-  IoU_log_val   = Vector{Any}(undef,length(maxiter));
+  logs = Log()
 
   for i=1:length(maxiter)
     TrainOptions.alpha   = alpha[i]
     TrainOptions.opt     = opt[i]
     TrainOptions.maxiter = maxiter[i]
-    f_log_traint, f_log_valt, dc2_log_traint, dc2_log_valt, IoU_log_traint, IoU_log_valt = Train(HN,logs,TrainOptions,train_data,val_data,train_labels,val_labels,P_I,output_samples_train,output_samples_val)
-    f_log_train[i] = f_log_traint; f_log_val[i] = f_log_valt;
-    dc2_log_train[i] = dc2_log_traint; dc2_log_val[i] = dc2_log_valt;
-    IoU_log_train[i] = IoU_log_traint; IoU_log_val[i] = IoU_log_valt;
+    logs = Train(HN,logs,TrainOptions,train_data,val_data,train_labels,val_labels,P_I,output_samples_train,output_samples_val)
   end
 
   if TrainOptions.use_gpu==true
@@ -172,7 +164,7 @@ opt     = [Flux.ADAM(1f-3) Flux.ADAM(1f-4)]
     cd("camvid_unconstrained")
   end
 
-  PlotCamvidLossUnconstrained(f_log_train,f_log_val,IoU_log_train,IoU_log_val,TrainOptions.eval_every)
+  PlotCamvidLossUnconstrained(logs,TrainOptions.eval_every)
 
   #plot training result
   plt_ind = 10

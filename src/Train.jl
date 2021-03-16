@@ -27,8 +27,8 @@ function Train(HN,logs,TrOpts,train_data,val_data,train_labels,val_labels,P,imag
         fvalepoch_train = fvalepoch_train + f
         dvalepoch_train = dvalepoch_train + d
       end
-      logs.val       = cat(logs.val,fvalepoch_train/length(train_data))
-      logs.dc2_train = cat(logs.dc2_train,dvalepoch_train/length(train_data))
+      logs.train     = vcat(logs.train,fvalepoch_train/length(train_data))
+      logs.dc2_train = vcat(logs.dc2_train,dvalepoch_train/length(train_data))
 
       #validation data/labels
       if isempty(val_labels[1])==false
@@ -43,8 +43,8 @@ function Train(HN,logs,TrOpts,train_data,val_data,train_labels,val_labels,P,imag
           fvalepoch_val = fvalepoch_val + f
           dvalepoch_val = dvalepoch_val + d
         end
-        logs.val     = cat(logs.val,fvalepoch_val/length(val_data))
-        logs.dc2_val = cat(logs.dc2_val,dvalepoch_val/length(val_data))
+        logs.val     = vcat(logs.val,fvalepoch_val/length(val_data))
+        logs.dc2_val = vcat(logs.dc2_val,dvalepoch_val/length(val_data))
       end
 
 
@@ -84,8 +84,8 @@ function Train(HN,logs,TrOpts,train_data,val_data,train_labels,val_labels,P,imag
         fvalepoch_train = fvalepoch_train + f
         dvalepoch_train = dvalepoch_train + d
       end
-      logs.val       = cat(logs.val,fvalepoch_train/length(train_data))
-      logs.dc2_train = cat(logs.dc2_train,dvalepoch_train/length(train_data))
+      logs.val       = vcat(logs.train,fvalepoch_train/length(train_data))
+      logs.dc2_train = vcat(logs.dc2_train,dvalepoch_train/length(train_data))
 
       #validation data/labels
       if isempty(val_labels[1])==false
@@ -100,8 +100,8 @@ function Train(HN,logs,TrOpts,train_data,val_data,train_labels,val_labels,P,imag
           fvalepoch_val = fvalepoch_val + f
           dvalepoch_val = dvalepoch_val + d
         end
-        logs.val     = cat(logs.val,fvalepoch_val/length(val_data))
-        logs.dc2_val = cat(logs.dc2_val,dvalepoch_val/length(val_data))
+        logs.val     = vcat(logs.val,fvalepoch_val/length(val_data))
+        logs.dc2_val = vcat(logs.dc2_val,dvalepoch_val/length(val_data))
       end
 
 
