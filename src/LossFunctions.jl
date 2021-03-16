@@ -34,9 +34,6 @@ function Dist2Set(input,P,TrOpts)
 end
 
 function g_CQ(input,TD_OP,P_sub,TrOpts)
-  #active_z_slice is only used for hyperspectral imaging where we map a 3D or 4D
-  #data volume to a 2D map of the earth. this 2D map is located at slice number
-  #active_z_slice in a x-y-z-nchan-n_ex tensor
 
   #initialize some stuff
   size_input = size(input)
@@ -45,8 +42,6 @@ function g_CQ(input,TD_OP,P_sub,TrOpts)
 
   #use softmax of final network state for constraining
   #the output for segmentation problems (don't use softmax for non-linear regression)
-  #input      = softmax(Array(input)[:,:,TrainOpts.channels,:],dims=3)
-
   input      = softmax(input[:,:,TrOpts.active_channels,:],dims=3)
 
   for j in TrOpts.active_channels #loop over channels, each channel has a (different) corresponding projector
@@ -54,7 +49,7 @@ function g_CQ(input,TD_OP,P_sub,TrOpts)
     pen_value_slice    = 0f0 #
     #P_input            = P[j](input_slice) #project onto constraint set (can be an intersection)
     #pen_value_slice    = 0.5f0*norm(vec(P_input)-vec(input_slice))^2 #squared point-to-set distance functino
-    f_temp,g_temp = MultipleSplitFeasCQ_fun_grad(vec(deepcopy(input_slice)),TD_OP[j],P_sub[j],TrOpts.alpha_CQ[j])
+    f_temp,g_temp      = MultipleSplitFeasCQ_fun_grad(vec(deepcopy(input_slice)),TD_OP[j],P_sub[j],TrOpts.alpha_CQ[j])
     pen_grad[:,:,j,1] .= reshape(g_temp,size(input_slice)) # gradient of point-to-set distance function
 
     pen_value = pen_value + f_temp #accumulate penalty value (loss) over channels
@@ -107,29 +102,13 @@ function LossTotal(HN,TrOpts,X0::AbstractArray{T, N},label,P,image_weights,activ
       else
         lval = 0.0
     end
-    # # #take equal number of random pixels from each class for the gradient
-    # pos_inds = findall(label[:,:,1,1].==1)
-    # neg_inds = findall(label[:,:,1,1].==0)
-    # npix = min(length(pos_inds),length(neg_inds))
-    # npix = round(Int,npix/2)
-    # pos_inds_select = shuffle(pos_inds)[1:npix]
-    # neg_inds_select = shuffle(neg_inds)[1:npix]
-    # random_mask = zeros(Float32,size(grad))
-    # random_mask[pos_inds_select,1:2,1].=1
-    # random_mask[neg_inds_select,1:2,1].=1
-
-    #grad .= grad.*random_mask
 
   if alpha>0
     if use_gpu == true
       Y_new = Y_new|>cpu
     end
     dc2,dc2_grad = Dist2Set(Y_new[:,:,active_z_slice,:,:],P,TrOpts)
-    # if (norm(alpha*dc2_grad[:,:,active_channels,1])/norm(grad)) > 10f0
-    #   @warn "(norm(alpha*dc2_grad[:,:,active_channels,1])/norm(grad)) > 10f0"
-    # elseif (norm(alpha*dc2_grad[:,:,active_channels,1])/norm(grad)) < 0.1f0
-    #   @warn "(norm(alpha*dc2_grad[:,:,active_channels,1])/norm(grad)) < 0.1f0"
-    # end
+
 
     #grad  = grad + alpha*dc2_grad[:,:,active_channels,1]
   else
@@ -158,7 +137,8 @@ function LossTotal(HN,TrOpts,X0::AbstractArray{T, N},label,P,image_weights,activ
    return lval, dc2
 end
 
-function LossTotal(HN,alpha,use_gpu,X0::AbstractArray{T, N},label,P,image_weights,lossf,lossg,active_channels,active_z_slice::Array{Any,1},flip_dims,permute_dims,P_mode::String,TD_OP,P_sub,alpha_CQ) where {T, N}
+function LossTotal(HN,TrOpts,X0::AbstractArray{T, N},label,P,image_weights,active_z_slice::Array{Any,1},P_mode::String,TD_OP,P_sub,alpha_CQ) where {T, N}
+    alpha=TrOpts.alpha; use_gpu=TrOpts.use_gpu; lossf=TrOpts.lossf; lossg=TrOpts.lossg; active_channels=TrOpts.active_channels;
 
     Y_curr, Y_new, lgdet = HN.forward(X0,X0)
     if use_gpu == true
@@ -174,40 +154,24 @@ function LossTotal(HN,alpha,use_gpu,X0::AbstractArray{T, N},label,P,image_weight
 
     if isempty(label)==false
       if N==4
-        lval         = lossf(Y_new[:,:,active_channels,1],label,image_weights)
-        (grad,dummy) = lossg(Y_new[:,:,active_channels,1],label,image_weights)
+        lval         = TrOpts.lossf(Y_new[:,:,active_channels,1],label,image_weights)
+        (grad,dummy) = TrOpts.lossg(Y_new[:,:,active_channels,1],label,image_weights)
       elseif N==5
-        lval         = lossf(Y_new[:,:,:,active_channels,1],label,image_weights)
-        (grad,dummy) = lossg(Y_new[:,:,:,active_channels,1],label,image_weights)
+        lval         = TrOpts.lossf(Y_new[:,:,:,active_channels,1],label,image_weights)
+        (grad,dummy) = TrOpts.lossg(Y_new[:,:,:,active_channels,1],label,image_weights)
       end
     else
       lval = 0.0
     end
-    # # #take equal number of random pixels from each class for the gradient
-    # pos_inds = findall(label[:,:,1,1].==1)
-    # neg_inds = findall(label[:,:,1,1].==0)
-    # npix = min(length(pos_inds),length(neg_inds))
-    # npix = round(Int,npix/2)
-    # pos_inds_select = shuffle(pos_inds)[1:npix]
-    # neg_inds_select = shuffle(neg_inds)[1:npix]
-    # random_mask = zeros(Float32,size(grad))
-    # random_mask[pos_inds_select,1:2,1].=1
-    # random_mask[neg_inds_select,1:2,1].=1
 
-    #grad .= grad.*random_mask
-
-  if alpha[1][1]>0
+  if (alpha[1][1]>0 || alpha_CQ[1][1]>0)==true
     if P_mode == "Proj_intersection"
       dc2,dc2_grad = Dist2Set(Y_new,P,active_channels)
       dc2_grad .= alpha.*dc2_grad
     elseif P_mode == "g_CQ"
       dc2,dc2_grad = g_CQ(Y_new,TD_OP,P_sub,alpha_CQ,active_channels)
     end
-    # if (norm(alpha*dc2_grad[:,:,active_channels,1])/norm(grad)) > 10f0
-    #   @warn "(norm(alpha*dc2_grad[:,:,active_channels,1])/norm(grad)) > 10f0"
-    # elseif (norm(alpha*dc2_grad[:,:,active_channels,1])/norm(grad)) < 0.1f0
-    #   @warn "(norm(alpha*dc2_grad[:,:,active_channels,1])/norm(grad)) < 0.1f0"
-    # end
+
     if N==4
       grad  = grad + dc2_grad[:,:,active_channels,1]
     elseif N==5
@@ -271,7 +235,7 @@ return IoU_pos, IoU_neg
 end
 
 function LossTotal(HN,TrOpts,X0::AbstractArray{T, N},label,P,image_weights,active_z_slice::Array{Any,1}) where {T, N}
-    alpha=TrOpts.alpha; use_gpu=TrOpts.use_gpu; lossf=TrOpts.lossf; lossg=TrOpts.lossg;
+    alpha=TrOpts.alpha; use_gpu=TrOpts.use_gpu; lossf=TrOpts.lossf; lossg=TrOpts.lossg; active_channels=TrOpts.active_channels;
 
     Y_curr, Y_new, lgdet = HN.forward(X0,X0)
     if use_gpu == true
@@ -280,18 +244,18 @@ function LossTotal(HN,TrOpts,X0::AbstractArray{T, N},label,P,image_weights,activ
 
     #initialize gradient
     if N==4
-      grad = zeros(Float32,size(Y_new[:,:,TrOpts.active_channels,1]))
+      grad = zeros(Float32,size(Y_new[:,:,active_channels,1]))
     elseif N==5
-      grad = zeros(Float32,size(Y_new[:,:,:,TrOpts.active_channels,1]))
+      grad = zeros(Float32,size(Y_new[:,:,:,active_channels,1]))
     end
 
     if isempty(label)==false
       if N==4
-        lval         = lossf(Y_new[:,:,TrOpts.active_channels,1],label,image_weights)
-        (grad,dummy) = lossg(Y_new[:,:,TrOpts.active_channels,1],label,image_weights)
+        lval         = lossf(Y_new[:,:,active_channels,1],label,image_weights)
+        (grad,dummy) = lossg(Y_new[:,:,active_channels,1],label,image_weights)
       elseif N==5
-        lval         = lossf(Y_new[:,:,:,TrOpts.active_channels,1],label,image_weights)
-        (grad,dummy) = lossg(Y_new[:,:,:,TrOpts.active_channels,1],label,image_weights)
+        lval         = lossf(Y_new[:,:,:,active_channels,1],label,image_weights)
+        (grad,dummy) = lossg(Y_new[:,:,:,active_channels,1],label,image_weights)
       end
     else
       lval = 0.0
@@ -321,9 +285,9 @@ function LossTotal(HN,TrOpts,X0::AbstractArray{T, N},label,P,image_weights,activ
     #   @warn "(norm(alpha*dc2_grad[:,:,active_channels,1])/norm(grad)) < 0.1f0"
     # end
     if N==4
-      grad  = grad + alpha*dc2_grad[:,:,TrOpts.active_channels,1]
+      grad  = grad + alpha*dc2_grad[:,:,active_channels,1]
     elseif N==5
-      grad  = grad + alpha*dc2_grad[:,:,:,TrOpts.active_channels,1]
+      grad  = grad + alpha*dc2_grad[:,:,:,active_channels,1]
     end
   else
     dc2 = 0f0
@@ -332,9 +296,9 @@ function LossTotal(HN,TrOpts,X0::AbstractArray{T, N},label,P,image_weights,activ
 
    ΔY_curr= zeros(Float32,size(Y_new))
    if N==4
-     ΔY_curr[:,:,TrOpts.active_channels,1] .= grad
+     ΔY_curr[:,:,active_channels,1] .= grad
    elseif N==5
-     ΔY_curr[:,:,:,TrOpts.active_channels,1] .= grad
+     ΔY_curr[:,:,:,active_channels,1] .= grad
    end
    ΔY_new = zeros(Float32,size(Y_new))
 
