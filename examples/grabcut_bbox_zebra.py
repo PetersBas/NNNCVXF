@@ -1,15 +1,10 @@
 #Instructions:
 #(script based on: https://www.pyimagesearch.com/2020/07/27/opencv-grabcut-foreground-segmentation-and-extraction/)
 
-#run script as: python grabcut_bbox_bike.py
+#run script as: python grabcut_bbox_zebra.py
 #when a figure appears, mouse click on the figure and press any key to continue
 #this script will show a sequence of figures, and pauses until you press
 #any key after a mouse click on the figure
-
-#missing pixels are randomly selected, so run the script multiple times
-#to get a sense of what outputs can be expected.
-
-#change the percentage of missing pixels on line 41
 
 # import the necessary packages
 import numpy as np
@@ -38,7 +33,7 @@ image = image[::2,::2,:]
 
 #####################################################
 #add corruption #####################################
-percentage_missing = 0.0 #This number indicates the percentage of missing pixels
+percentage_missing = 0.0 #This number indicates the percentage of missing lines
 #stripes
 if percentage_missing==0.10:
     index_list = [41,171,140,162,95,149,169,79,103,26,173,44,22,127,7,116,160,59,188,15,207,83,100,107]

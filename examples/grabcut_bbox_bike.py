@@ -6,11 +6,6 @@
 #this script will show a sequence of figures, and pauses until you press
 #any key after a mouse click on the figure
 
-#missing pixels are randomly selected, so run the script multiple times
-#to get a sense of what outputs can be expected.
-
-#change the percentage of missing pixels on line 42
-
 # import the necessary packages
 import numpy as np
 import argparse
@@ -39,7 +34,7 @@ image=image[::4,::4,:]
 
 #####################################################
 #add corruption #####################################
-percentage_missing = 0.10 #This number indicates the percentage of missing pixels
+percentage_missing = 0.10 #This number indicates the percentage of missing lines
 #stripes
 index_list = [23,35,32,60,65,98,57,55,7,10,64,77]
 image[index_list,:]=0
