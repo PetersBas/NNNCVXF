@@ -1,4 +1,4 @@
-export Train
+export Train, TrainStatusPrint
 
 function Train(HN,logs,TrOpts,train_data,val_data,train_labels,val_labels,P,image_weights_train,image_weights_val,active_z_slice::Union{Array{Any,1},Int}=[])
 
@@ -47,8 +47,8 @@ function Train(HN,logs,TrOpts,train_data,val_data,train_labels,val_labels,P,imag
         logs.dc2_val = vcat(logs.dc2_val,dvalepoch_val/length(val_data))
       end
 
-
-      print("Iteration: ", j, "; ftrain = ", logs.train[end], "; dtrain = ", logs.dc2_train[end], "; fval = ", logs.val[end], "; dval = ", logs.dc2_val[end], ";  IoUtrain:", logs.IoU_train[end,:] , ";  IoUval:" , logs.IoU_val[end,:], "\n")
+      TrainStatusPrint(j,logs
+      #print("Iteration: ", j, "; ftrain = ", logs.train[end], "; dtrain = ", logs.dc2_train[end], "; fval = ", logs.val[end], "; dval = ", logs.dc2_val[end], ";  IoUtrain:", logs.IoU_train[end,:] , ";  IoUval:" , logs.IoU_val[end,:], "\n")
       clear_grad!(HN)
     end
 
@@ -84,7 +84,7 @@ function Train(HN,logs,TrOpts,train_data,val_data,train_labels,val_labels,P,imag
         fvalepoch_train = fvalepoch_train + f
         dvalepoch_train = dvalepoch_train + d
       end
-      logs.val       = vcat(logs.train,fvalepoch_train/length(train_data))
+      logs.train       = vcat(logs.train,fvalepoch_train/length(train_data))
       logs.dc2_train = vcat(logs.dc2_train,dvalepoch_train/length(train_data))
 
       #validation data/labels
@@ -104,12 +104,35 @@ function Train(HN,logs,TrOpts,train_data,val_data,train_labels,val_labels,P,imag
         logs.dc2_val = vcat(logs.dc2_val,dvalepoch_val/length(val_data))
       end
 
-
-      print("Iteration: ", j, "; ftrain = ", logs.train[end], "; dtrain = ", logs.dc2_train[end], "; fval = ", logs.val[end], "; dval = ", logs.dc2_val[end], ";  IoUtrain:", logs.IoU_train[end,:] , ";  IoUval:" , logs.IoU_val[end,:], "\n")
+      TrainStatusPrint(j,logs)
+      #print("Iteration: ", j, "; ftrain = ", logs.train[end], "; dtrain = ", logs.dc2_train[end], "; fval = ", logs.val[end], "; dval = ", logs.dc2_val[end], ";  IoUtrain:", logs.IoU_train[end,:] , ";  IoUval:" , logs.IoU_val[end,:], "\n")
       clear_grad!(HN)
     end
 
   end
 
   return logs
+end
+
+function TrainStatusPrint(iteration,logs)
+  printstring=string("Iteration: ", iteration)
+  if isempty(logs.train)==false
+    printstring = printstring * string("; ftrain = ", logs.train[end])
+  end
+  if isempty(logs.dc2_train)==false
+    printstring = printstring * string("; dtrain = ", logs.dc2_train[end])
+  end
+  if isempty(logs.val)==false
+    printstring = printstring * string("; fval = ", logs.val[end])
+  end
+  if isempty(logs.dc2_val)==false
+     printstring = printstring * string("; dval = ", logs.dc2_val[end])
+   end
+   if isempty(logs.IoU_train)==false
+     printstring = printstring * string(";  IoUtrain:", logs.IoU_train[end,:])
+   end
+   if isempty(logs.IoU_val)==false
+     printstring = printstring * string(";  IoUval:" , logs.IoU_val[end,:])
+   end
+   println(printstring)
 end

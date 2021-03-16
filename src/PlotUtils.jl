@@ -5,7 +5,7 @@ function PlotHyperspectralLossConstrained(logs,eval_every)
   iter_ax = range(0,step=eval_every,length=length(logs.dc2_train))
 
   figure(figsize=(5,4));
-  semilogy(iter_ax,ogs.dc2_train);title("Squared distance to set");xlabel("Iteration")
+  semilogy(iter_ax,logs.dc2_train);title("Squared distance to set");xlabel("Iteration")
   tight_layout()
   savefig("dc2_hyperspectral.png")
 end
