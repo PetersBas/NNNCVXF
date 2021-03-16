@@ -115,7 +115,7 @@ TrainOptions.flip_dims       = []
 TrainOptions.permute_dims    = []
 
 TrainOptions.alpha   = 1f0
-TrainOptions.maxiter = 300
+TrainOptions.maxiter = 20#300
 TrainOptions. opt    = Flux.Momentum(1f-4,0.9)
 
 active_z_slice = 33

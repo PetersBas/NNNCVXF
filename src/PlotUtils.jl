@@ -38,9 +38,6 @@ function PlotDataLabelPredictionHyperspectral(plt_ind::Int,data,label,HN,active_
   pred_thres2[pos_inds] .= 1
   figure(figsize=(5,4));
   imshow(Array(pred_thres)[3:end-2,3:end-2],vmin=vmi,vmax=vma);PyPlot.title(string("Prediction"));#xlabel("x");ylabel("y")
-  # for i=1:length(pos_inds_select)
-  #     scatter(pos_inds_select[i][2],pos_inds_select[i][1],c="r",alpha=0.5)
-  # end
   tight_layout()
   savefig(string(tag,"_prediction.png"))#,bbox="tight")
 
@@ -49,7 +46,7 @@ function PlotDataLabelPredictionHyperspectral(plt_ind::Int,data,label,HN,active_
   figure(figsize=(5,4));
   imshow(label[plt_ind][:,:,33,1,1],vmin=vmi,vmax=vma);PyPlot.title(string("Labels"));#xlabel("x");ylabel("y")
   for i=1:length(pos_inds_select)
-      scatter(pos_inds_select[i][2],pos_inds_select[i][1],c="r",alpha=0.5)
+      PyPlot.scatter(pos_inds_select[i][2],pos_inds_select[i][1],c="r",alpha=0.5)
   end
   tight_layout()
   savefig(string(tag,"_labels.png"))#,bbox="tight")

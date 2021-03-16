@@ -47,7 +47,7 @@ function Train(HN,logs,TrOpts,train_data,val_data,train_labels,val_labels,P,imag
         logs.dc2_val = vcat(logs.dc2_val,dvalepoch_val/length(val_data))
       end
 
-      TrainStatusPrint(j,logs
+      TrainStatusPrint(j,logs)
       #print("Iteration: ", j, "; ftrain = ", logs.train[end], "; dtrain = ", logs.dc2_train[end], "; fval = ", logs.val[end], "; dval = ", logs.dc2_val[end], ";  IoUtrain:", logs.IoU_train[end,:] , ";  IoUval:" , logs.IoU_val[end,:], "\n")
       clear_grad!(HN)
     end
