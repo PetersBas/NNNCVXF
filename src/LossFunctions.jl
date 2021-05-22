@@ -33,7 +33,7 @@ function Dist2Set(input,P,TrOpts)
   return pen_value, pen_grad
 end
 
-function g_CQ(input,TD_OP,P_sub,TrOpts)
+function g_CQ(input,TD_OP,P_sub,alpha_CQ,TrOpts)
 
   #initialize some stuff
   size_input = size(input)
@@ -49,7 +49,7 @@ function g_CQ(input,TD_OP,P_sub,TrOpts)
     pen_value_slice    = 0f0 #
     #P_input            = P[j](input_slice) #project onto constraint set (can be an intersection)
     #pen_value_slice    = 0.5f0*norm(vec(P_input)-vec(input_slice))^2 #squared point-to-set distance functino
-    f_temp,g_temp      = MultipleSplitFeasCQ_fun_grad(vec(deepcopy(input_slice)),TD_OP[j],P_sub[j],TrOpts.alpha_CQ[j])
+    f_temp,g_temp      = MultipleSplitFeasCQ_fun_grad(vec(deepcopy(input_slice)),TD_OP[j],P_sub[j],alpha_CQ[j])
     pen_grad[:,:,j,1] .= reshape(g_temp,size(input_slice)) # gradient of point-to-set distance function
 
     pen_value = pen_value + f_temp #accumulate penalty value (loss) over channels
@@ -79,8 +79,8 @@ grad = zeros(T,length(x))
 for i = 1:length(A)
   y     = A[i]*x
   PcAx  = P_sub[i](deepcopy(y))
-  f[i]  = alpha[i]/2 .* norm(PcAx - y,2).^2
-  grad .= grad .+ A[i]'*(y.-PcAx)
+  f[i]  = norm(PcAx - y,2).^2
+  grad .= grad .+ alpha[i].*A[i]'*(y.-PcAx)
 end
 
 return sum(f),grad
@@ -169,7 +169,7 @@ function LossTotal(HN,TrOpts,X0::AbstractArray{T, N},label,P,image_weights,activ
       dc2,dc2_grad = Dist2Set(Y_new,P,active_channels)
       dc2_grad .= alpha.*dc2_grad
     elseif P_mode == "g_CQ"
-      dc2,dc2_grad = g_CQ(Y_new,TD_OP,P_sub,alpha_CQ,active_channels)
+      dc2,dc2_grad = g_CQ(Y_new,TD_OP,P_sub,alpha_CQ,TrOpts)
     end
 
     if N==4

@@ -83,7 +83,7 @@ pos_inds_select = shuffle(pos_inds)[1:20]
 
 function Proj_bounds_card_ch1(input,pos_inds_select,max_card_pos)
   proj=deepcopy(input)
-  proj[pos_inds_select] .= 1.1f0
+  proj[pos_inds_select] .= 1.1f0 #needs to be >1 otherwise the next line may remove the point annotation
   proj = reshape(project_cardinality!(vec(proj),round(Int,max_card_pos*prod(size(proj)[1:2]))),size(proj)[1:2])
   proj = reshape(project_bounds!(vec(proj),0.0f0,1.0f0),size(proj)[1:2])
   return proj
@@ -115,7 +115,7 @@ TrainOptions.flip_dims       = []
 TrainOptions.permute_dims    = []
 
 TrainOptions.alpha   = 1f0
-TrainOptions.maxiter = 20#300
+TrainOptions.maxiter = 300
 TrainOptions. opt    = Flux.Momentum(1f-4,0.9)
 
 active_z_slice = 33
@@ -137,8 +137,139 @@ output_samples_val   = [[]]
 #train the network; returns the loss, network parameters are updated inplace so HN is updated after training
 logs = Train(HN,logs,TrainOptions,data,val_data,train_labels,val_labels,P,output_samples_train,output_samples_val,active_z_slice)
 
+if isdir("point_annotations_1_class_plus_constraints")==false
+  mkdir("point_annotations_1_class_plus_constraints")
+end
+cd("point_annotations_1_class_plus_constraints")
 #plot the distance function per iteration
 PlotHyperspectralLossConstrained(logs,TrainOptions.eval_every)
 
 #plot data and results
-PlotDataLabelPredictionHyperspectral(1,data,labels,HN,TrainOptions.active_channels,active_z_slice,pos_inds_select,"train")
+PlotDataLabelPredictionHyperspectral(1,data,labels,HN,TrainOptions.active_channels,active_z_slice,pos_inds_select,[],"train")
+cd("..")
+
+######### Compare to point annotations for both classes + constraints ##########
+######### Compare to point annotations for both classes + constraints ##########
+
+HN = H = NetworkHyperbolic3D(n_chan_in,architecture; α)
+
+#set up one projector per channel to enforce constraints
+#input comes as a tensor (matrix in 2D, 3D array for 3d data)
+#output should be same size as input
+#pos_inds = findall(labels[1][:,:,33,1,1].>0)
+#pos_inds_select = shuffle(pos_inds)[1:20]
+neg_inds = findall(labels[1][:,:,33,1,1].==0)
+neg_inds_select = shuffle(neg_inds)[1:20]
+
+function Proj_bounds_card_ch1(input,pos_inds_select,neg_inds_select,max_card_pos)
+  proj=deepcopy(input)
+  proj[pos_inds_select] .= 1.1f0
+  proj[neg_inds_select] .= 0.0f0
+  proj = reshape(project_cardinality!(vec(proj),round(Int,max_card_pos*prod(size(proj)[1:2]))),size(proj)[1:2])
+  proj = reshape(project_bounds!(vec(proj),0.0f0,1.0f0),size(proj)[1:2])
+  return proj
+end
+
+function Proj_bounds_card_ch2(input,pos_inds_select,neg_inds_select,max_card_neg)
+  proj=deepcopy(input)
+  proj[pos_inds_select] .= 0.0f0
+  proj[neg_inds_select] .= 1.1f0
+  proj = reshape(project_cardinality!(vec(proj),round(Int,max_card_neg*prod(size(proj)[1:2]))),size(proj)[1:2])
+  proj = reshape(project_bounds!(vec(proj),0.0f0,1.0f0),size(input)[1:2])
+  return proj
+end
+
+P    = Vector{Vector{Any}}(undef,1)
+P[1] = Vector{Any}(undef,2)
+P[1][1] = x -> Proj_bounds_card_ch1(x,pos_inds_select,0.45)
+P[1][2] = x -> Proj_bounds_card_ch2(x,pos_inds_select,0.75)
+
+if use_gpu==true
+  HN   = H |> gpu  #move network to use_gpu
+  data = data|>gpu #move data to gpu
+end
+
+logs = Log() #create structure of logs of misfits
+
+#fill unused data/labels with empty arrays
+val_data      = [[]]
+train_labels  = [[]]
+val_labels    = [[]]
+output_samples_train = [[]]
+output_samples_val   = [[]]
+
+#train the network; returns the loss, network parameters are updated inplace so HN is updated after training
+logs = Train(HN,logs,TrainOptions,data,val_data,train_labels,val_labels,P,output_samples_train,output_samples_val,active_z_slice)
+
+if isdir("point_annotations_2_class_plus_constraints")==false
+  mkdir("point_annotations_2_class_plus_constraints")
+end
+cd("point_annotations_2_class_plus_constraints")
+#plot the distance function per iteration
+PlotHyperspectralLossConstrained(logs,TrainOptions.eval_every)
+
+#plot data and results
+PlotDataLabelPredictionHyperspectral(1,data,labels,HN,TrainOptions.active_channels,active_z_slice,pos_inds_select,neg_inds_select,"train")
+cd("..")
+
+######### Compare to point annotations for both classes WITHOUT other constraints ##########
+######### Compare to point annotations for both classes WITHOUT other constraints ##########
+
+HN = H = NetworkHyperbolic3D(n_chan_in,architecture; α)
+
+#set up one projector per channel to enforce constraints
+#input comes as a tensor (matrix in 2D, 3D array for 3d data)
+#output should be same size as input
+
+# pos_inds = findall(labels[1][:,:,33,1,1].>0)
+# pos_inds_select = shuffle(pos_inds)[1:20]
+# neg_inds = findall(labels[1][:,:,33,1,1].==0)
+# neg_inds_select = shuffle(neg_inds)[1:20]
+
+function Proj_bounds_ch1(input,pos_inds_select,neg_inds_select)
+  proj=deepcopy(input)
+  proj[pos_inds_select] .= 1.0f0
+  proj[neg_inds_select] .= 0.0f0
+  #proj = reshape(project_cardinality!(vec(proj),round(Int,max_card_pos*prod(size(proj)[1:2]))),size(proj)[1:2])
+  proj = reshape(project_bounds!(vec(proj),0.0f0,1.0f0),size(input)[1:2])
+  return proj
+end
+
+function Proj_bounds_ch2(input,pos_inds_select,neg_inds_select)
+  proj=deepcopy(input)
+  proj[pos_inds_select] .= 0.0f0
+  proj[neg_inds_select] .= 1.0f0
+  #proj = reshape(project_cardinality!(vec(proj),round(Int,max_card_neg*prod(size(proj)[1:2]))),size(proj)[1:2])
+  proj = reshape(project_bounds!(vec(proj),0.0f0,1.0f0),size(input)[1:2])
+  return proj
+end
+
+P    = Vector{Vector{Any}}(undef,1)
+P[1] = Vector{Any}(undef,2)
+P[1][1] = x -> Proj_bounds_ch1(x,pos_inds_select,neg_inds_select)
+P[1][2] = x -> Proj_bounds_ch2(x,pos_inds_select,neg_inds_select)
+
+if use_gpu==true
+  HN   = H |> gpu  #move network to use_gpu
+  data = data|>gpu #move data to gpu
+end
+
+logs = Log() #create structure of logs of misfits
+
+#fill unused data/labels with empty arrays
+val_data      = [[]]
+train_labels  = [[]]
+val_labels    = [[]]
+output_samples_train = [[]]
+output_samples_val   = [[]]
+
+if isdir("point_annotations_2_class_no_constraints")==false
+  mkdir("point_annotations_2_class_no_constraints")
+end
+cd("point_annotations_2_class_no_constraints")
+#plot the distance function per iteration
+PlotHyperspectralLossConstrained(logs,TrainOptions.eval_every)
+
+#plot data and results
+PlotDataLabelPredictionHyperspectral(1,data,labels,HN,TrainOptions.active_channels,active_z_slice,pos_inds_select,neg_inds_select,"train")
+cd("..")

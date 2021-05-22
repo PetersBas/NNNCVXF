@@ -1,5 +1,5 @@
-# NNNCVXF - **N**eural **N**etwork training via **N**on-**C**on**V**e**x** **F**easibility
-**N**eural **N**etwork training via **N**on-**C**on**V**e**x** **F**easibility
+# NNNCVXF - **N**eural **N**etwork training via **N**on-**C**on**V**e**X** **F**easibility
+**N**eural **N**etwork training via **N**on-**C**on**V**e**X** **F**easibility
 
 This repository contains scripts to reproduce the examples from:
 
