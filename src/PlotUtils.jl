@@ -10,7 +10,7 @@ function PlotHyperspectralLossConstrained(logs,eval_every)
   savefig("dc2_hyperspectral.png")
 end
 
-function PlotDataLabelPredictionHyperspectral(plt_ind::Int,data,label,HN,active_channels,active_z_slice,pos_inds_select,tag::String)
+function PlotDataLabelPredictionHyperspectral(plt_ind::Int,data,label,HN,active_channels,active_z_slice,pos_inds_select,neg_inds_select,tag::String)
 
   #predict
   p1, prediction, ~ = HN.forward(data[plt_ind], data[plt_ind])
@@ -47,6 +47,11 @@ function PlotDataLabelPredictionHyperspectral(plt_ind::Int,data,label,HN,active_
   imshow(label[plt_ind][:,:,33,1,1],vmin=vmi,vmax=vma);PyPlot.title(string("Labels"));#xlabel("x");ylabel("y")
   for i=1:length(pos_inds_select)
       PyPlot.scatter(pos_inds_select[i][2],pos_inds_select[i][1],c="r",alpha=0.5)
+  end
+  if isempty(neg_inds_select)==false
+    for i=1:length(neg_inds_select)
+        PyPlot.scatter(neg_inds_select[i][2],neg_inds_select[i][1],c="g",alpha=0.5)
+    end
   end
   tight_layout()
   savefig(string(tag,"_labels.png"))#,bbox="tight")
