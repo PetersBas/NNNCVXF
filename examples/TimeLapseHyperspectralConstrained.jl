@@ -263,6 +263,9 @@ val_labels    = [[]]
 output_samples_train = [[]]
 output_samples_val   = [[]]
 
+#train the network; returns the loss, network parameters are updated inplace so HN is updated after training
+logs = Train(HN,logs,TrainOptions,data,val_data,train_labels,val_labels,P,output_samples_train,output_samples_val,active_z_slice)
+
 if isdir("point_annotations_2_class_no_constraints")==false
   mkdir("point_annotations_2_class_no_constraints")
 end

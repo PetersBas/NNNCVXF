@@ -46,11 +46,11 @@ function PlotDataLabelPredictionHyperspectral(plt_ind::Int,data,label,HN,active_
   figure(figsize=(5,4));
   imshow(label[plt_ind][:,:,33,1,1],vmin=vmi,vmax=vma);PyPlot.title(string("Labels"));#xlabel("x");ylabel("y")
   for i=1:length(pos_inds_select)
-      PyPlot.scatter(pos_inds_select[i][2],pos_inds_select[i][1],c="r",alpha=0.5)
+      PyPlot.scatter(pos_inds_select[i][2],pos_inds_select[i][1],c="r")
   end
   if isempty(neg_inds_select)==false
     for i=1:length(neg_inds_select)
-        PyPlot.scatter(neg_inds_select[i][2],neg_inds_select[i][1],c="w",alpha=0.5)
+        PyPlot.scatter(neg_inds_select[i][2],neg_inds_select[i][1],c="w")
     end
   end
   tight_layout()
