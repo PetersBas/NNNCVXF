@@ -50,7 +50,7 @@ function PlotDataLabelPredictionHyperspectral(plt_ind::Int,data,label,HN,active_
   end
   if isempty(neg_inds_select)==false
     for i=1:length(neg_inds_select)
-        PyPlot.scatter(neg_inds_select[i][2],neg_inds_select[i][1],c="g",alpha=0.5)
+        PyPlot.scatter(neg_inds_select[i][2],neg_inds_select[i][1],c="w",alpha=0.5)
     end
   end
   tight_layout()

@@ -151,7 +151,7 @@ cd("..")
 ######### Compare to point annotations for both classes + constraints ##########
 ######### Compare to point annotations for both classes + constraints ##########
 
-HN = H = NetworkHyperbolic3D(n_chan_in,architecture; α)
+#HN = H = NetworkHyperbolic3D(n_chan_in,architecture; α)
 
 #set up one projector per channel to enforce constraints
 #input comes as a tensor (matrix in 2D, 3D array for 3d data)
@@ -215,7 +215,7 @@ cd("..")
 ######### Compare to point annotations for both classes WITHOUT other constraints ##########
 ######### Compare to point annotations for both classes WITHOUT other constraints ##########
 
-HN = H = NetworkHyperbolic3D(n_chan_in,architecture; α)
+#HN = H = NetworkHyperbolic3D(n_chan_in,architecture; α)
 
 #set up one projector per channel to enforce constraints
 #input comes as a tensor (matrix in 2D, 3D array for 3d data)
