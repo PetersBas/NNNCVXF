@@ -181,6 +181,12 @@ function LossTotal(HN,TrOpts,X0::AbstractArray{T, N},label,P,image_weights,activ
     dc2 = 0f0
   end
 
+  #optional: randomly set parts of the gradient to zero
+  if TrOpts.rand_grad_perc_zero!=0.0
+    rand_mask = CartesianIndices(size(grad)[1:end-2])
+    rand_mask = shuffle(vec(rand_mask))[1:round(Int,TrOpts.rand_grad_perc_zero*prod(size(rand_mask)))]
+    grad[rand_mask].=0f0
+  end
 
    ΔY_curr= zeros(Float32,size(Y_new))
    if N==4
@@ -234,6 +240,7 @@ IoU_neg = zeros(length(data))
 return IoU_pos, IoU_neg
 end
 
+#Loss for applications other than Hyperspectral. Uses projection onto intersection.
 function LossTotal(HN,TrOpts,X0::AbstractArray{T, N},label,P,image_weights,active_z_slice::Array{Any,1}) where {T, N}
     alpha=TrOpts.alpha; use_gpu=TrOpts.use_gpu; lossf=TrOpts.lossf; lossg=TrOpts.lossg; active_channels=TrOpts.active_channels;
 
@@ -293,6 +300,12 @@ function LossTotal(HN,TrOpts,X0::AbstractArray{T, N},label,P,image_weights,activ
     dc2 = 0f0
   end
 
+  #optional: randomly set parts of the gradient to zero
+  if TrOpts.rand_grad_perc_zero!=0.0
+    rand_mask = CartesianIndices(size(grad)[1:end-2])
+    rand_mask = shuffle(vec(rand_mask))[1:round(Int,TrOpts.rand_grad_perc_zero*prod(size(rand_mask)))]
+    grad[rand_mask].=0f0
+  end
 
    ΔY_curr= zeros(Float32,size(Y_new))
    if N==4

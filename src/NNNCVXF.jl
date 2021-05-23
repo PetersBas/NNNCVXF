@@ -38,6 +38,7 @@ export TrOpts, Log
            permute_dims    ::Array{Int}  = []
            maxiter         ::Int         = 10
            opt             ::Any         = Flux.ADAM(1f-3)
+           rand_grad_perc_zero  ::Float32     = 0f0
 end
 
 @with_kw mutable struct Log
