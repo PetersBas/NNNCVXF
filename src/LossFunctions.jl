@@ -185,7 +185,7 @@ function LossTotal(HN,TrOpts,X0::AbstractArray{T, N},label,P,image_weights,activ
   if TrOpts.rand_grad_perc_zero!=0.0
     rand_mask = CartesianIndices(size(grad)[1:end-2])
     rand_mask = shuffle(vec(rand_mask))[1:round(Int,TrOpts.rand_grad_perc_zero*prod(size(rand_mask)))]
-    grad[rand_mask].=0f0
+    if N==4;grad[rand_mask,:,:].=0f0;elseif N==5;grad[rand_mask,:,:,:].=0f0;end;
   end
 
    ΔY_curr= zeros(Float32,size(Y_new))
@@ -304,7 +304,7 @@ function LossTotal(HN,TrOpts,X0::AbstractArray{T, N},label,P,image_weights,activ
   if TrOpts.rand_grad_perc_zero!=0.0
     rand_mask = CartesianIndices(size(grad)[1:end-2])
     rand_mask = shuffle(vec(rand_mask))[1:round(Int,TrOpts.rand_grad_perc_zero*prod(size(rand_mask)))]
-    grad[rand_mask].=0f0
+    if N==4;grad[rand_mask,:,:].=0f0;elseif N==5;grad[rand_mask,:,:,:].=0f0;end;
   end
 
    ΔY_curr= zeros(Float32,size(Y_new))
