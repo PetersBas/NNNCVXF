@@ -14,7 +14,7 @@ function Train(HN,logs,TrOpts,train_data,val_data,train_labels,val_labels,P,imag
     end
     clear_grad!(HN)
 
-    if mod(j, TrOpts.eval_every) == 0
+    if mod(j, TrOpts.eval_every) == 0 || j==1
       if isempty(train_labels[1])==false
         ioupos_train,iouneg_train = IoU(HN,train_data,train_labels)
         ioupos_train   = ioupos_train[ioupos_train.>0.0]
@@ -71,7 +71,7 @@ function Train(HN,logs,TrOpts,train_data,val_data,train_labels,val_labels,P,imag
     end
     clear_grad!(HN)
 
-    if mod(j, TrOpts.eval_every) == 0
+    if mod(j, TrOpts.eval_every) == 0 || j==1
       if isempty(train_labels[1])==false
         ioupos_train,iouneg_train = IoU(HN,train_data,train_labels)
         ioupos_train   = ioupos_train[ioupos_train.>0.0]
