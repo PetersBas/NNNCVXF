@@ -115,7 +115,7 @@ function LossTotal(HN,TrOpts,X0::AbstractArray{T, N},label,P,image_weights,activ
     dc2 = 0f0
   end
 
-  if isempty(label)==false
+  if isempty(label)==false && alpha>0
       grad  = grad + alpha*dc2_grad[:,:,active_z_slice,active_channels,1]
   elseif isempty(label)==true
       n = size(dc2_grad)
