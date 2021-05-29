@@ -100,8 +100,8 @@ function LossTotal(HN,TrOpts,X0::AbstractArray{T, N},label,P,image_weights,activ
     end
 
     if isempty(label)==false
-        lval         = lossf(Y_new[:,:,active_z_slice,active_channels,1],label,image_weights)
-        (grad,dummy) = lossg(Y_new[:,:,active_z_slice,active_channels,1],label,image_weights)
+        lval         = lossf(Y_new[:,:,active_z_slice,active_channels,1],label[:,:,active_z_slice,active_channels,1],image_weights)
+        (grad,dummy) = lossg(Y_new[:,:,active_z_slice,active_channels,1],label[:,:,active_z_slice,active_channels,1],image_weights)
       else
         lval = 0.0
     end
