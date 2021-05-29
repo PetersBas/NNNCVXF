@@ -1,8 +1,7 @@
 export SparseClassSamples
 
-function SparseClassSamples(label,active_channels,n_pix_per_class::Int)
+function SparseClassSamples(label::AbstractArray{T, 4},active_channels,n_pix_per_class::Int) where T
   #get a few randomly selected pixels per class per image as the point-annotations
-
   cw = zeros(Float32,size(label)[1:2])
   for i in active_channels
     class_i_ind = findall(label[:,:,i,1].==1)

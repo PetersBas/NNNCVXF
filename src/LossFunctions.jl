@@ -95,6 +95,9 @@ function LossTotal(HN,TrOpts,X0::AbstractArray{T, N},label,P,image_weights,activ
     end
 
     Y_curr, Y_new, lgdet = HN.forward(X0,X0)
+    if use_gpu == true
+      Y_new = Y_new|>cpu
+    end
 
     if isempty(label)==false
         lval         = lossf(Y_new[:,:,active_z_slice,active_channels,1],label,image_weights)
@@ -104,9 +107,6 @@ function LossTotal(HN,TrOpts,X0::AbstractArray{T, N},label,P,image_weights,activ
     end
 
   if alpha>0
-    if use_gpu == true
-      Y_new = Y_new|>cpu
-    end
     dc2,dc2_grad = Dist2Set(Y_new[:,:,active_z_slice,:,:],P,TrOpts)
 
 
