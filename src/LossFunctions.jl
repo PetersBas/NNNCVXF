@@ -206,13 +206,12 @@ function LossTotal(HN,TrOpts,X0::AbstractArray{T, N},label,P,image_weights,activ
    return lval, dc2
 end
 
-function IoU(HN,data,labels)
+function IoU(HN,data::AbstractArray{T, 4},labels) where T
 threshold = 0.65
 IoU_pos = zeros(length(data))
 IoU_neg = zeros(length(data))
 
   for i=1:length(data)
-    #prediction = CAE(ϕ,KnetArray(data[i]),h)
     ~, prediction, ~ = HN.forward(data[i],data[i])
     prediction = prediction |> cpu
     prediction[:,:,1:2,1].=softmax(prediction[:,:,1:2,1],dims=3);
@@ -222,7 +221,6 @@ IoU_neg = zeros(length(data))
     pos_inds   = findall(prediction[:,:,1] .> threshold)
     pred_thres[pos_inds] .= 1
 
-    #plot pixel accuracy per time-slice
     prediction_for_acc = pred_thres[5:end-4,5:end-4]
     mask_for_acc       = labels[i][5:end-4,5:end-4,1]
 
@@ -238,6 +236,10 @@ IoU_neg = zeros(length(data))
   end
 
 return IoU_pos, IoU_neg
+end
+
+function IoU(HN,data::AbstractArray{T, 5},labels) where T
+return 0.0, 0.0
 end
 
 #Loss for applications other than Hyperspectral. Uses projection onto intersection.
