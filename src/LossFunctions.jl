@@ -206,7 +206,7 @@ function LossTotal(HN,TrOpts,X0::AbstractArray{T, N},label,P,image_weights,activ
    return lval, dc2
 end
 
-function IoU(HN,data::AbstractArray{T, 4},labels) where T
+function IoU(HN,data::AbstractArray{Float32,4},labels)
 threshold = 0.65
 IoU_pos = zeros(length(data))
 IoU_neg = zeros(length(data))
@@ -238,7 +238,7 @@ IoU_neg = zeros(length(data))
 return IoU_pos, IoU_neg
 end
 
-function IoU(HN,data::AbstractArray{T, 5},labels) where T
+function IoU(HN,data::AbstractArray{Float32,5},labels)
 return 0.0, 0.0
 end
 
