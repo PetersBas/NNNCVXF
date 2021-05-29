@@ -209,7 +209,7 @@ end
 function IoU(HN,data,labels)
 
 if length(size(data[1]))==5
- return 0.0, 0.0
+ return 1.0, 1.0
 end
 
 threshold = 0.65
