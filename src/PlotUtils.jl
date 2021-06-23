@@ -44,7 +44,7 @@ function PlotDataLabelPredictionHyperspectral(plt_ind::Int,data,label,HN,active_
   println(length(findall(pred_thres.>0))/prod(size(pred_thres)[1:2]))
 
   figure(figsize=(5,4));
-  imshow(label[plt_ind][:,:,33,1,1],vmin=vmi,vmax=vma);PyPlot.title(string("Labels"));#xlabel("x");ylabel("y")
+  imshow(label[plt_ind][:,:,active_z_slice,1,1],vmin=vmi,vmax=vma);PyPlot.title(string("Labels"));#xlabel("x");ylabel("y")
   for i=1:length(pos_inds_select)
       PyPlot.scatter(pos_inds_select[i][2],pos_inds_select[i][1],c="r")
   end
@@ -57,12 +57,12 @@ function PlotDataLabelPredictionHyperspectral(plt_ind::Int,data,label,HN,active_
   savefig(string(tag,"_labels.png"))#,bbox="tight")
 
   figure(figsize=(5,4));
-  imshow(Array(pred_thres)[3:end-2,3:end-2]-label[plt_ind][:,:,33,1,1][3:end-2,3:end-2],vmin=-1,vmax=1);PyPlot.title(string("Difference"));#xlabel("x");ylabel("y")
+  imshow(Array(pred_thres)[3:end-2,3:end-2]-label[plt_ind][:,:,active_z_slice,1,1][3:end-2,3:end-2],vmin=-1,vmax=1);PyPlot.title(string("Difference"));#xlabel("x");ylabel("y")
   tight_layout()
   savefig(string(tag,"_error.png"))#,bbox="tight")
 
   figure(figsize=(5,4));
-  imshow(Array(pred_thres2)[3:end-2,3:end-2]-label[plt_ind][:,:,33,1,1][3:end-2,3:end-2],vmin=-1,vmax=1);PyPlot.title(string("Difference"));#xlabel("x");ylabel("y")
+  imshow(Array(pred_thres2)[3:end-2,3:end-2]-label[plt_ind][:,:,active_z_slice,1,1][3:end-2,3:end-2],vmin=-1,vmax=1);PyPlot.title(string("Difference"));#xlabel("x");ylabel("y")
   tight_layout()
   savefig(string(tag,"_error2.png"))#,bbox="tight")
 
