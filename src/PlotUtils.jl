@@ -7,7 +7,7 @@ function PlotHyperspectralLossConstrained(logs,eval_every)
   figure(figsize=(5,4));
   semilogy(iter_ax,logs.dc2_train);title("Squared distance to set");xlabel("Iteration")
   tight_layout()
-  savefig("dc2_hyperspectral.png")
+  savefig("dc2_hyperspectral.png",bbox_inches="tight")
 end
 
 function PlotDataLabelPredictionHyperspectral(plt_ind::Int,data,label,HN,active_channels,active_z_slice,pos_inds_select,neg_inds_select,tag::String)
@@ -39,7 +39,7 @@ function PlotDataLabelPredictionHyperspectral(plt_ind::Int,data,label,HN,active_
   figure(figsize=(5,4));
   imshow(Array(pred_thres)[3:end-2,3:end-2],vmin=vmi,vmax=vma);PyPlot.title(string("Prediction"));#xlabel("x");ylabel("y")
   tight_layout()
-  savefig(string(tag,"_prediction.png"))#,bbox="tight")
+  savefig(string(tag,"_prediction.png"),bbox_inches="tight")
 
   println(length(findall(pred_thres.>0))/prod(size(pred_thres)[1:2]))
 
@@ -53,18 +53,20 @@ function PlotDataLabelPredictionHyperspectral(plt_ind::Int,data,label,HN,active_
         PyPlot.scatter(neg_inds_select[i][2],neg_inds_select[i][1],c="w")
     end
   end
-  tight_layout()
-  savefig(string(tag,"_labels.png"))#,bbox="tight")
+  n = size(label[plt_ind][:,:,active_z_slice,1,1])
+  ylim([n[1],0]);xlim([0,n[2]])
+  #tight_layout()
+  savefig(string(tag,"_labels.png"),bbox_inches="tight")
 
   figure(figsize=(5,4));
   imshow(Array(pred_thres)[3:end-2,3:end-2]-label[plt_ind][:,:,active_z_slice,1,1][3:end-2,3:end-2],vmin=-1,vmax=1);PyPlot.title(string("Difference"));#xlabel("x");ylabel("y")
   tight_layout()
-  savefig(string(tag,"_error.png"))#,bbox="tight")
+  savefig(string(tag,"_error.png"),bbox_inches="tight")
 
   figure(figsize=(5,4));
   imshow(Array(pred_thres2)[3:end-2,3:end-2]-label[plt_ind][:,:,active_z_slice,1,1][3:end-2,3:end-2],vmin=-1,vmax=1);PyPlot.title(string("Difference"));#xlabel("x");ylabel("y")
   tight_layout()
-  savefig(string(tag,"_error2.png"))#,bbox="tight")
+  savefig(string(tag,"_error2.png"),bbox_inches="tight")
 
   #Plot data+prediction
   figure(figsize=(9,5))
@@ -77,11 +79,11 @@ function PlotDataLabelPredictionHyperspectral(plt_ind::Int,data,label,HN,active_
   imshow(Array(pred_thres)[3:end-2,3:end-2],alpha=0.30)
   title(string("Data T2 + Prediction - ",tag))
   tight_layout()
-  savefig(string(tag,"data_plus_pred.png"))
+  savefig(string(tag,"data_plus_pred.png"),bbox_inches="tight")
 
   figure();
-  imshow(data[plt_ind][:,:,40,1,1]);title("Slice of T1 data");savefig("data_surface_T1.png")
-  imshow(data[plt_ind][:,:,40,2,1]);title("Slice of T2 data");savefig("data_surface_T2.png")
+  imshow(data[plt_ind][:,:,40,1,1]);title("Slice of T1 data");savefig("data_surface_T1.png",bbox_inches="tight")
+  imshow(data[plt_ind][:,:,40,2,1]);title("Slice of T2 data");savefig("data_surface_T2.png",bbox_inches="tight")
 
   #plot data cube
   #-----------------------
@@ -130,8 +132,8 @@ function PlotDataLabelPredictionHyperspectral(plt_ind::Int,data,label,HN,active_
   end
   scatter3D(slice1x,slice1y,slice1z,c=slice1_values1,vmin=-0.2,vmax=0.5)
   #subplot(1,2,2);scatter3D(slice1x,slice1y,slice1z,c=slice1_values2,vmin=-0.2,vmax=0.5)
-  tight_layout()
-  savefig("data3D_T1.png",bbox="tight")
+  #tight_layout()
+  savefig("data3D_T1.png",bbox_inches="tight")
   #-----------------------
 
   #-----------------------
@@ -181,7 +183,7 @@ function PlotDataLabelPredictionHyperspectral(plt_ind::Int,data,label,HN,active_
   scatter3D(slice1x,slice1y,slice1z,c=slice1_values2,vmin=-0.2,vmax=0.5)
   #subplot(1,2,2);scatter3D(slice1x,slice1y,slice1z,c=slice1_values2,vmin=-0.2,vmax=0.5)
   tight_layout()
-  savefig("data3D_T2.png")
+  savefig("data3D_T2.png",bbox_inches="tight")
   #-----------------------
 
 end

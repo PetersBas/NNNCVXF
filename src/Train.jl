@@ -1,6 +1,6 @@
 export Train, TrainStatusPrint
 
-function Train(HN,logs,TrOpts,train_data,val_data,train_labels,val_labels,P,image_weights_train,image_weights_val,active_z_slice::Union{Array{Any,1},Int}=[])
+function Train(HN,logs,TrOpts,train_data,val_data,train_labels,val_labels,P,image_weights_train,image_weights_val,active_z_slice::Union{Array{Any,1},Int}=[],P_val=[])
 
   for j=1:TrOpts.maxiter
     for k=1:TrOpts.batchsize
@@ -31,7 +31,7 @@ function Train(HN,logs,TrOpts,train_data,val_data,train_labels,val_labels,P,imag
       logs.dc2_train = vcat(logs.dc2_train,dvalepoch_train/length(train_data))
 
       #validation data/labels
-      if isempty(val_labels[1])==false
+      if isempty(val_labels[1])==false && isempty(P_val)==false
         ioupos_val,iouneg_val = IoU(HN,val_data,val_labels)
         ioupos_val    = ioupos_val[ioupos_val.>0.0]
         logs.IoU_val  = cat(logs.IoU_val,[mean(ioupos_val) mean(iouneg_val)],dims=1)
@@ -39,7 +39,8 @@ function Train(HN,logs,TrOpts,train_data,val_data,train_labels,val_labels,P,imag
         fvalepoch_val = 0.0
         dvalepoch_val = 0.0
         for i=1:length(val_data)
-          f,d = LossTotal(HN,TrOpts,val_data[i],val_labels[i],P[i],image_weights_val[i],active_z_slice)
+          #f,d = LossTotal(HN,TrOpts,val_data[i],val_labels[i],P[i],image_weights_val[i],active_z_slice)
+          f,d = LossTotal(HN,TrOpts,val_data[i],val_labels[i],P_val[i],image_weights_val[i],active_z_slice)
           fvalepoch_val = fvalepoch_val + f
           dvalepoch_val = dvalepoch_val + d
         end
@@ -57,13 +58,14 @@ function Train(HN,logs,TrOpts,train_data,val_data,train_labels,val_labels,P,imag
   return logs
 end
 
-function Train(HN,logs,TrOpts,train_data,val_data,train_labels,val_labels,P,image_weights_train,image_weights_val,active_z_slice,P_mode::String,TD_OP,P_sub,alpha_CQ)
+function Train(HN,logs,TrOpts,train_data,val_data,train_labels,val_labels,P,image_weights_train,image_weights_val,active_z_slice,P_val,P_mode::String,TD_OP,P_sub,alpha_CQ,TD_OP_val,P_sub_val,alpha_CQ_val)
 
   for j=1:TrOpts.maxiter
     for k=1:TrOpts.batchsize
       rand_ind = randperm(length(train_data))[1]
       # Evaluate objective and gradients
-      fval, dc2val = LossTotal(HN,TrOpts,train_data[rand_ind],train_labels[rand_ind],P[rand_ind],image_weights_train[rand_ind],active_z_slice,P_mode,TD_OP,P_sub[rand_ind],alpha_CQ)
+      #println(string("example-",rand_ind))
+      fval, dc2val = LossTotal(HN,TrOpts,train_data[rand_ind],train_labels[rand_ind],P[rand_ind],image_weights_train[rand_ind],active_z_slice,P_mode,TD_OP[rand_ind],P_sub[rand_ind],alpha_CQ[rand_ind])
     end
     for p in get_params(HN)
         update!(TrOpts.opt, p.data, p.grad)
@@ -80,7 +82,8 @@ function Train(HN,logs,TrOpts,train_data,val_data,train_labels,val_labels,P,imag
       fvalepoch_train = 0.0
       dvalepoch_train = 0.0
       for i=1:length(train_data)
-        f,d = LossTotal(HN,TrOpts,train_data[i],train_labels[i],P[i],image_weights_train[i],active_z_slice,P_mode,TD_OP,P_sub[i],alpha_CQ)
+        #println(string("example train-",i))
+        f,d = LossTotal(HN,TrOpts,train_data[i],train_labels[i],P[i],image_weights_train[i],active_z_slice,P_mode,TD_OP[i],P_sub[i],alpha_CQ[i])
         fvalepoch_train = fvalepoch_train + f
         dvalepoch_train = dvalepoch_train + d
       end
@@ -88,7 +91,7 @@ function Train(HN,logs,TrOpts,train_data,val_data,train_labels,val_labels,P,imag
       logs.dc2_train   = vcat(logs.dc2_train,dvalepoch_train/length(train_data))
 
       #validation data/labels
-      if isempty(val_labels[1])==false
+      if isempty(val_labels[1])==false || isempty(P_sub_val)==false
         ioupos_val,iouneg_val = IoU(HN,val_data,val_labels)
         ioupos_val=ioupos_val[ioupos_val.>0.0]
         logs.IoU_val  = cat(logs.IoU_val,[mean(ioupos_val) mean(iouneg_val)],dims=1)
@@ -96,8 +99,9 @@ function Train(HN,logs,TrOpts,train_data,val_data,train_labels,val_labels,P,imag
         fvalepoch_val = 0.0
         dvalepoch_val = 0.0
         for i=1:length(val_data)
-          PI = x -> x#no projector for validation
-          f,d = LossTotal(HN,TrOpts,val_data[i],val_labels[i],PI,image_weights_val[i],active_z_slice)
+          #PI = x -> x#no projector for validation
+          #println(string("example val-",i))
+          f,d = LossTotal(HN,TrOpts,val_data[i],val_labels[i],P[i],image_weights_val[i],active_z_slice,P_mode,TD_OP_val[i],P_sub_val[i],alpha_CQ_val[i])
           fvalepoch_val = fvalepoch_val + f
           dvalepoch_val = dvalepoch_val + d
         end

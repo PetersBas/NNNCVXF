@@ -76,12 +76,22 @@ f    = zeros(T,length(alpha))#allocate function value per constraint/linear oper
 ng   = zeros(T,length(alpha))#allocate norm of gradient per constraint/linear operator
 grad = zeros(T,length(x))
 
-for i = 1:length(A)
-  y     = A[i]*x
-  PcAx  = P_sub[i](deepcopy(y))
-  f[i]  = norm(PcAx - y,2).^2
-  grad .= grad .+ alpha[i].*A[i]'*(y.-PcAx)
-end
+
+  for i = 1:length(A)
+    if isempty(A[i]) == true
+      #println(string("constraint-",i))
+      PcAx  = P_sub[i](deepcopy(x))
+      # println(typeof(x))
+      # println(typeof(PcAx))
+      f[i]  = norm(PcAx .- x,2).^2
+      grad .= grad .+ alpha[i].*(x.-PcAx)
+    else
+      y     = A[i]*x
+      PcAx  = P_sub[i](deepcopy(y))
+      f[i]  = norm(PcAx - y,2).^2
+      grad .= grad .+ alpha[i].*A[i]'*(y.-PcAx)
+    end
+  end
 
 return sum(f),grad
 end
@@ -242,6 +252,43 @@ IoU_neg = zeros(length(data))
 
 return IoU_pos, IoU_neg
 end
+
+function IoU(HN,data,labels,mask)
+
+  if length(size(data[1]))==5
+   return 1.0, 1.0
+  end
+  
+  threshold = 0.65
+  IoU_pos = zeros(length(data))
+  IoU_neg = zeros(length(data))
+  
+    for i=1:length(data)
+      ~, prediction, ~ = HN.forward(data[i],data[i])
+      prediction = prediction |> cpu
+      #prediction = prediction[findall(mask .== 1)]
+      prediction[:,:,1:2,1].=softmax(prediction[:,:,1:2,1],dims=3);
+  
+      #active inds
+      active_inds = findall(mask[i] .== 1)
+
+      pred_thres = zeros(Int,size(prediction)[1:2])
+      pos_inds   = findall(prediction[:,:,1,1] .> threshold)
+      pred_thres[pos_inds] .= 1
+  
+      pos_pred_inds = findall(pred_thres[active_inds].==1)
+      neg_pred_inds = findall(pred_thres[active_inds].==0)
+  
+      true_pos_inds = findall(labels[i][active_inds,1,1] .== 1)
+      true_neg_inds = findall(labels[i][active_inds,1,1] .== 0)
+  
+      #IoU
+      IoU_pos[i] = length(intersect(pos_pred_inds,true_pos_inds))/length(union(pos_pred_inds,true_pos_inds))
+      IoU_neg[i] = length(intersect(neg_pred_inds,true_neg_inds))/length(union(neg_pred_inds,true_neg_inds))
+    end
+  
+  return IoU_pos, IoU_neg
+  end
 
 #Loss for applications other than Hyperspectral. Uses projection onto intersection.
 function LossTotal(HN,TrOpts,X0::AbstractArray{T, N},label,P,image_weights,active_z_slice::Array{Any,1}) where {T, N}
