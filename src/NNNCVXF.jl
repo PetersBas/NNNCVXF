@@ -23,6 +23,7 @@ include("NetworkOutputSampling.jl")
 include("Train.jl")
 include("PlotUtils.jl")
 include("AugmentDataLabel.jl")
+include("ConstraintSetupHelperFunctions.jl")
 
 export TrOpts, Log
 
