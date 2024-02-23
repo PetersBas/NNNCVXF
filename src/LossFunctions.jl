@@ -1,4 +1,4 @@
-export Dist2Set, LossTotal, IoU, g_CQ, MultipleSplitFeasCQ_fun_grad
+export Dist2Set, LossTotal, IoU, g_CQ, MultipleSplitFeasCQ_fun_grad, MSSFP, MSSFP_grad, FWD_CQ_AD
 
 function Dist2Set(input,P,TrOpts)
   #active_z_slice is only used for hyperspectral imaging where we map a 3D or 4D
@@ -42,6 +42,7 @@ function g_CQ(input,TD_OP,P_sub,alpha_CQ,TrOpts)
 
   #use softmax of final network state for constraining
   #the output for segmentation problems (don't use softmax for non-linear regression)
+  input_orig = deepcopy(input)
   input      = softmax(input[:,:,TrOpts.active_channels,:],dims=3)
 
   for j in TrOpts.active_channels #loop over channels, each channel has a (different) corresponding projector
@@ -54,12 +55,29 @@ function g_CQ(input,TD_OP,P_sub,alpha_CQ,TrOpts)
 
     pen_value = pen_value + f_temp #accumulate penalty value (loss) over channels
   end #end channels loop
-
-  #at this point,the softmax of the network output has been projected onto the intersection. Now we need to 'complete' the gradient
-  #via the last part of the chain-rule for distance-function-squared and softmax
-  pen_grad[:,:,TrOpts.active_channels,1] .= ∇softmax(pen_grad[:,:,TrOpts.active_channels,1], input[:,:,TrOpts.active_channels,1]; dims=3)
-
+  pen_grad[:,:,TrOpts.active_channels,[1]] .= NNlib.∇softmax_data(pen_grad[:,:,TrOpts.active_channels,[1]], input[:,:,TrOpts.active_channels,[1]]; dims=3)
+  
   return pen_value, pen_grad
+end
+function FWD_CQ_AD(input,TD_OP,P_sub,alpha_CQ,TrOpts)
+
+  #initialize some stuff
+  size_input = size(input)
+  #pen_grad   = zeros(Float32,size(input))
+  pen_value  = 0f0
+
+  #use softmax of final network state for constraining
+  #the output for segmentation problems (don't use softmax for non-linear regression)
+  input_orig = deepcopy(input)
+  input      = softmax(input[:,:,TrOpts.active_channels,:],dims=3)
+
+  for j in TrOpts.active_channels #loop over channels, each channel has a (different) corresponding projector
+    input_slice        = input[:,:,j,1]
+    pen_value_slice    = 0f0 #
+    f_temp      = MSSFP(vec(deepcopy(input_slice)),TD_OP[j],P_sub[j],alpha_CQ[j])
+    pen_value = pen_value + f_temp #accumulate penalty value (loss) over channels
+  end #end channels loop
+  return pen_value
 end
 
 function MultipleSplitFeasCQ_fun_grad(x::AbstractVector{T},A,P_sub,alpha::AbstractVector) where T
@@ -79,21 +97,77 @@ grad = zeros(T,length(x))
 
   for i = 1:length(A)
     if isempty(A[i]) == true
-      #println(string("constraint-",i))
       PcAx  = P_sub[i](deepcopy(x))
-      # println(typeof(x))
-      # println(typeof(PcAx))
-      f[i]  = norm(PcAx .- x,2).^2
+      f[i]  = alpha[i] * norm(PcAx .- x,2).^2
       grad .= grad .+ alpha[i].*(x.-PcAx)
     else
       y     = A[i]*x
       PcAx  = P_sub[i](deepcopy(y))
-      f[i]  = norm(PcAx - y,2).^2
+      f[i]  = alpha[i] * norm(PcAx - y,2).^2
       grad .= grad .+ alpha[i].*A[i]'*(y.-PcAx)
     end
   end
 
 return sum(f),grad
+end
+
+function MSSFP(x::AbstractVector{T},A,P_sub,alpha::AbstractVector) where T
+  # returns the gradient of the sum of squared distance functions for the split-feasibility
+  #problem: A_i x = y_i , y_i \in C_i
+  # f = \sum_{i=1}^p \alpha_i/2 \| P_C_i (A_i x) - A_i x \|_2^2
+  # g = \sum_{i=1}^p \alpha_i/2 A_i^t (A_i x - P_C_i (A_i x) )
+
+  #serial implementation
+  #(each projection or mat-vec can still use multiple threads)
+
+  f    = T(0)#zeros(T,length(alpha))#allocate function value per constraint/linear operator
+  #ng   = zeros(T,length(alpha))#allocate norm of gradient per constraint/linear operator
+  #grad = zeros(T,length(x))
+
+
+  for i = 1:length(A)
+    if isempty(A[i]) == true
+      PcAx  = P_sub[i](deepcopy(x))
+      f     = f + alpha[i]*T(0.5)*norm(PcAx .- x,2).^2
+      #grad .= grad .+ alpha[i].*(x.-PcAx)
+    else
+      y     = A[i]*x
+      PcAx  = P_sub[i](deepcopy(y))
+      f     = f + alpha[i]*T(0.5) * norm(PcAx - y,2).^2
+      #grad .= grad .+ alpha[i].*A[i]'*(y.-PcAx)
+    end
+  end
+
+  return f#,grad
+end
+function MSSFP_grad(x::AbstractVector{T},A,P_sub,alpha::AbstractVector) where T
+
+  # returns the gradient of the sum of squared distance functions for the split-feasibility
+  #problem: A_i x = y_i , y_i \in C_i
+  # f = \sum_{i=1}^p \alpha_i/2 \| P_C_i (A_i x) - A_i x \|_2^2
+  # g = \sum_{i=1}^p \alpha_i/2 A_i^t (A_i x - P_C_i (A_i x) )
+
+  #serial implementation
+  #(each projection or mat-vec can still use multiple threads)
+  grad = zeros(T,length(x))
+
+  for i = 1:length(A)
+    if isempty(A[i]) == true
+      PcAx  = P_sub[i](deepcopy(x))
+      grad = grad + alpha[i]*(x-PcAx)
+    else
+      y     = A[i]*x
+      PcAx  = P_sub[i](deepcopy(y))
+      grad = grad + alpha[i]*A[i]'*(y-PcAx)
+    end
+  end
+
+  return grad
+end
+function rrule(::typeof(MSSFP), x,A,P_sub,alpha)
+  y = MSSFP(x,A,P_sub,alpha)
+  MSSFP_pullback(Δy) = (NoTangent(), MSSFP_grad(x,A,P_sub,alpha)' * Δy,NoTangent(),NoTangent(),NoTangent())
+  return y, MSSFP_pullback
 end
 
 function LossTotal(HN,TrOpts,X0::AbstractArray{T, N},label,P,image_weights,active_z_slice::Int) where {T, N}
@@ -205,7 +279,6 @@ function LossTotal(HN,TrOpts,X0::AbstractArray{T, N},label,P,image_weights,activ
      ΔY_curr[:,:,:,active_channels,1] .= grad
    end
    ΔY_new = zeros(Float32,size(Y_new))
-
    if use_gpu == true
      Y_new   = Y_new|>gpu
      ΔY_curr = ΔY_curr|>gpu

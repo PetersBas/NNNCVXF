@@ -142,7 +142,7 @@ function Proj_Hist_Bbox_ch1(input,tl,rb,orig_size,min_card_patch)
     #the last min_area entries are equal to 1, so the first N-max_are entries are equal to, say, 0.4
     lb_area = zeros(Float32,prod(size(tl:rb))); 
     ub_area = ones(Float32,prod(size(tl:rb)))
-    lb_area[end-min_area:end] .= 0.65
+    lb_area[end-min_area+1:end] .= 0.75f0
     proj[tl:rb] .= reshape(project_histogram_relaxed!(vec(proj[tl:rb]),lb_area,ub_area),size(tl:rb))
 
     return vec(proj)

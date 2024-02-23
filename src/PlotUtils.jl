@@ -23,10 +23,10 @@ function PlotDataLabelPredictionHyperspectral(plt_ind::Int,data,label,HN,active_
   vmi = 0.0
   vma = 1.0
   figure(figsize=(6,4))
-  subplot(2,2,1);imshow(Array(prediction)[3:end-2,3:end-2,active_z_slice,active_channels[1],1],vmin=vmi,vmax=vma);PyPlot.title("Prediction - class 1");colorbar()
-  subplot(2,2,2);imshow(Array(prediction)[3:end-2,3:end-2,active_z_slice,active_channels[2],1],vmin=vmi,vmax=vma);PyPlot.title("Prediction - class 2");colorbar()
-  subplot(2,2,3);imshow(label[plt_ind][3:end-2,3:end-2,active_z_slice,active_channels[1],1],vmin=vmi,vmax=vma);PyPlot.title("Label - class 1");colorbar()
-  subplot(2,2,4);imshow(label[plt_ind][3:end-2,3:end-2,active_z_slice,active_channels[2],1],vmin=vmi,vmax=vma);PyPlot.title("Label - class 2");colorbar()
+  subplot(2,2,1);imshow(Array(prediction)[3:end-2,3:end-2,active_z_slice,active_channels[1],1],vmin=vmi,vmax=vma);title("Prediction - class 1");colorbar()
+  subplot(2,2,2);imshow(Array(prediction)[3:end-2,3:end-2,active_z_slice,active_channels[2],1],vmin=vmi,vmax=vma);title("Prediction - class 2");colorbar()
+  subplot(2,2,3);imshow(label[plt_ind][3:end-2,3:end-2,active_z_slice,active_channels[1],1],vmin=vmi,vmax=vma);title("Label - class 1");colorbar()
+  subplot(2,2,4);imshow(label[plt_ind][3:end-2,3:end-2,active_z_slice,active_channels[2],1],vmin=vmi,vmax=vma);title("Label - class 2");colorbar()
   savefig(string(tag,"_prediction_channels.png"))
 
   #thresholded prediction
@@ -37,14 +37,14 @@ function PlotDataLabelPredictionHyperspectral(plt_ind::Int,data,label,HN,active_
   pos_inds    = findall(prediction[:,:,active_z_slice,active_channels[1],1] .< prediction[:,:,active_z_slice,active_channels[2],1])
   pred_thres2[pos_inds] .= 1
   figure(figsize=(5,4));
-  imshow(Array(pred_thres)[3:end-2,3:end-2],vmin=vmi,vmax=vma);PyPlot.title(string("Prediction"));#xlabel("x");ylabel("y")
+  imshow(Array(pred_thres)[3:end-2,3:end-2],vmin=vmi,vmax=vma);title(string("Prediction"));#xlabel("x");ylabel("y")
   tight_layout()
   savefig(string(tag,"_prediction.png"),bbox_inches="tight")
 
   println(length(findall(pred_thres.>0))/prod(size(pred_thres)[1:2]))
 
   figure(figsize=(5,4));
-  imshow(label[plt_ind][:,:,active_z_slice,active_channels[1],1],vmin=vmi,vmax=vma);PyPlot.title(string("Labels"));#xlabel("x");ylabel("y")
+  imshow(label[plt_ind][:,:,active_z_slice,active_channels[1],1],vmin=vmi,vmax=vma);title(string("Labels"));#xlabel("x");ylabel("y")
   for i=1:length(pos_inds_select)
       PyPlot.scatter(pos_inds_select[i][2],pos_inds_select[i][1],c="r")
   end
@@ -59,12 +59,12 @@ function PlotDataLabelPredictionHyperspectral(plt_ind::Int,data,label,HN,active_
   savefig(string(tag,"_labels.png"),bbox_inches="tight")
 
   figure(figsize=(5,4));
-  imshow(Array(pred_thres)[3:end-2,3:end-2]-label[plt_ind][:,:,active_z_slice,active_channels[1],1][3:end-2,3:end-2],vmin=-1,vmax=1);PyPlot.title(string("Difference"));#xlabel("x");ylabel("y")
+  imshow(Array(pred_thres)[3:end-2,3:end-2]-label[plt_ind][:,:,active_z_slice,active_channels[1],1][3:end-2,3:end-2],vmin=-1,vmax=1);title(string("Difference"));#xlabel("x");ylabel("y")
   tight_layout()
   savefig(string(tag,"_error.png"),bbox_inches="tight")
 
   figure(figsize=(5,4));
-  imshow(Array(pred_thres2)[3:end-2,3:end-2]-label[plt_ind][:,:,active_z_slice,active_channels[2],1][3:end-2,3:end-2],vmin=-1,vmax=1);PyPlot.title(string("Difference"));#xlabel("x");ylabel("y")
+  imshow(Array(pred_thres2)[3:end-2,3:end-2]-label[plt_ind][:,:,active_z_slice,active_channels[2],1][3:end-2,3:end-2],vmin=-1,vmax=1);title(string("Difference"));#xlabel("x");ylabel("y")
   tight_layout()
   savefig(string(tag,"_error2.png"),bbox_inches="tight")
 
@@ -244,10 +244,10 @@ function PlotDataLabelPredictionCamvid(plt_ind::Int,data,label,HN,active_channel
   vmi = 0.0
   vma = 1.0
   figure(figsize=(6,4))
-  subplot(2,2,1);imshow(Array(prediction)[3:end-2,3:end-2,1,1],vmin=vmi,vmax=vma);PyPlot.title("Prediction - class 1");colorbar()
-  subplot(2,2,2);imshow(Array(prediction)[3:end-2,3:end-2,2,1],vmin=vmi,vmax=vma);PyPlot.title("Prediction - class 2");colorbar()
-  subplot(2,2,3);imshow(label[plt_ind][3:end-2,3:end-2,1,1],vmin=vmi,vmax=vma);PyPlot.title("Label - class 1");colorbar()
-  subplot(2,2,4);imshow(label[plt_ind][3:end-2,3:end-2,2,1],vmin=vmi,vmax=vma);PyPlot.title("Label - class 2");colorbar()
+  subplot(2,2,1);imshow(Array(prediction)[3:end-2,3:end-2,1,1],vmin=vmi,vmax=vma);title("Prediction - class 1");colorbar()
+  subplot(2,2,2);imshow(Array(prediction)[3:end-2,3:end-2,2,1],vmin=vmi,vmax=vma);title("Prediction - class 2");colorbar()
+  subplot(2,2,3);imshow(label[plt_ind][3:end-2,3:end-2,1,1],vmin=vmi,vmax=vma);title("Label - class 1");colorbar()
+  subplot(2,2,4);imshow(label[plt_ind][3:end-2,3:end-2,2,1],vmin=vmi,vmax=vma);title("Label - class 2");colorbar()
   tight_layout()
   savefig(string(tag,"_prediction_channels.png"))
 
@@ -256,7 +256,7 @@ function PlotDataLabelPredictionCamvid(plt_ind::Int,data,label,HN,active_channel
   pos_inds = findall(prediction[:,:,1,1] .> 0.65)#prediction[:,:,2,1])
   pred_thres[pos_inds] .= 1
   figure(figsize=(5,4));
-  imshow(Array(pred_thres)[3:end-2,3:end-2],vmin=vmi,vmax=vma);PyPlot.title(string("Prediction - ",tag));#xlabel("x");ylabel("y")
+  imshow(Array(pred_thres)[3:end-2,3:end-2],vmin=vmi,vmax=vma);title(string("Prediction - ",tag));#xlabel("x");ylabel("y")
   tight_layout()
   savefig(string(tag,"_prediction.png"))#,bbox="tight")
 

@@ -16,6 +16,7 @@ using  Distributions
 import Images
 using CUDA
 using Parameters
+using ChainRules
 
 include("DataSetUtils.jl")
 include("LossFunctions.jl")
