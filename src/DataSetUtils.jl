@@ -1,4 +1,4 @@
-export LoadCamvid, GetTVvalues
+export LoadCamvid, LoadCamvidFull, GetTVvalues
 
 """
 Obtain the anisotropic total-variation per image. If the noise factor is larger than zero,
@@ -17,8 +17,12 @@ function GetTVvalues(grid,labels,noise_factor,compgrid)
     #add 'noise' to true tv list
   if noise_factor>0.0
     for i=1:length(labels)
-      d = Uniform((1-noise_factor)*true_TV_list[i],(1+noise_factor)*true_TV_list[i])
-      true_TV_list[i] = rand(d,1)[1]
+      if true_TV_list[i] > 0.0
+        d = Uniform(max((1-noise_factor)*true_TV_list[i],0.1),max((1+noise_factor)*true_TV_list[i],0.2))
+        true_TV_list[i] = rand(d,1)[1]
+      elseif true_TV_list[i] == 0.0
+        true_TV_list[i] = 0.1
+      end
     end
   end
 
@@ -180,6 +184,324 @@ function LoadCamvid(basepath::String,nr_output_chan::Int)
 
     val_labels = deepcopy(train_labels[47:end])
     train_labels = train_labels[1:46]
+
+
+    return train_data, train_labels, val_data, val_labels
+end #end function
+
+function LoadCamvidFull(basepath::String,nr_output_chan::Int)
+
+  current_dir = pwd()
+
+  #set data directories
+  data_dir_train  = joinpath(basepath,"Camvid/train/")
+  data_dir_val    = joinpath(basepath,"Camvid/val/")
+  label_dir_train = joinpath(basepath,"Camvid/trainannot/")
+  label_dir_val   = joinpath(basepath,"Camvid/valannot/")
+
+  #read file names
+  all_train_data = readdir(data_dir_train);
+  all_val_data   = readdir(data_dir_val);
+
+  all_train_labels = readdir(label_dir_train);
+  all_val_labels   = readdir(label_dir_val);
+
+  #allocate tensors for data/label storage
+  train_data     = zeros(Float32,3,360,480,length(all_train_data));
+  val_data       = zeros(Float32,3,360,480,length(all_val_data));
+
+  train_labels   = zeros(Float32,360,480,1,length(all_train_data));
+  val_labels     = zeros(Float32,360,480,1,length(all_val_data));
+
+  #read training data (hardcoded for getting the first video only)
+  cd(data_dir_train)
+  for i=1:length(all_train_data)
+      temp_img = Images.load(all_train_data[i])
+      train_data[1:3,:,:,i] = Images.channelview(temp_img)
+      println(i)
+   end
+
+  #permute to x-y-n_chan-n_examples
+  train_data    = permutedims(train_data,[2,3,1,4]);
+
+  #repeat data to increase channel count explicitly for input-output
+  repeat_factor = Int(nr_output_chan/3)
+  train_data    = repeat(train_data,outer=[1,1,repeat_factor,1])
+
+  #read val data
+  cd(data_dir_val)
+  for i=1:length(all_val_data)
+      temp_img = Images.load(all_val_data[i])
+      val_data[1:3,:,:,i] = Images.channelview(temp_img)
+      println(i)
+   end
+  val_data = permutedims(val_data,[2,3,1,4]);;
+  val_data=repeat(val_data,outer=[1,1,16,1])
+
+  #read training labels
+  cd(label_dir_train)
+  counter = 1
+  for i=1:length(all_train_labels)
+      temp_img = Images.load(all_train_labels[i])
+      train_labels[:,:,1,i] = Images.channelview(temp_img)
+      println(i)
+   end
+
+   #read validation labels
+   cd(label_dir_val)
+   counter = 1
+   for i=1:length(all_val_labels)
+       temp_img = Images.load(all_val_labels[i])
+       val_labels[:,:,1,i] = Images.channelview(temp_img)
+       println(i)
+    end
+
+    #reduce resolution and make sure each dimension can be divided by 2 at least 2 times (to be able to take wavelet transforms)
+    train_labels = train_labels[1:2:end,1:2:end,:,:]; train_labels = train_labels[1:176,:,:,:];
+    val_labels   = val_labels[1:2:end,1:2:end,:,:];   val_labels   = val_labels[1:176,:,:,:];
+    val_data     = val_data[1:2:end,1:2:end,:,:];     val_data     = val_data[1:176,:,:,:];
+    train_data   = train_data[1:2:end,1:2:end,:,:];   train_data   = train_data[1:176,:,:,:];
+
+    #change labels to 1-hot encodings
+    n_class             = length(unique(train_labels))
+    class_values        = sort(unique(train_labels))
+    train_labels_OneHot = zeros(Int,size(train_labels,1),size(train_labels,2),length(class_values),size(train_labels,4));
+    for i=1:length(class_values)
+        println(i)
+        class_indices = findall(train_labels[:,:,1,:] .== class_values[i])
+        class_image = zeros(Int,size(train_labels)[1],size(train_labels)[2],size(train_labels)[4])
+        class_image[class_indices] .= 1
+        train_labels_OneHot[:,:,i,:] .= class_image
+    end
+
+    val_labels_OneHot = zeros(Int,size(val_labels,1),size(val_labels,2),length(class_values),size(val_labels,4));
+    for i=1:length(class_values)
+        class_indices = findall(val_labels[:,:,1,:] .== class_values[i])
+        class_image = zeros(Int,size(val_labels)[1],size(val_labels)[2],size(val_labels)[4])
+        class_image[class_indices] .= 1
+        val_labels_OneHot[:,:,i,:] .= class_image
+    end
+
+    #print % of pixels in each class for the first video
+    println("% of pixels in each class, for first video in CamVid dataset")
+    for i=1:12;
+      println("class: ",i)
+      println(sum(train_labels_OneHot[:,:,i,:])/prod(size(train_labels_OneHot[:,:,1,:])).*100);
+    end
+
+    # selected_classes = [1, 2, 4, 5, 6, 9, 12]
+    # combine_classes = [3,7,8,10,11]
+    #
+    # val_labels_OneHot[:,:,[combine_classes[1]],:]  .= sum(val_labels_OneHot[:,:,combine_classes,:],dims=3)
+    # train_labels_OneHot[:,:,[combine_classes[1]],:].= sum(train_labels_OneHot[:,:,combine_classes,:],dims=3)
+
+    #class 9 corresponds to vehicles
+    selected_classes=[9]
+    #val_labels_OneHot = val_labels_OneHot[:,:,selected_classes,:]
+    train_labels_OneHot = train_labels_OneHot[:,:,selected_classes,:]
+
+    #add the second channel (1 - first channel) (this is unnecessary if n_classes > 3)
+    train_labels_OneHot = repeat(train_labels_OneHot,outer=[1,1,2,1])
+    train_labels_OneHot[:,:,2,:] .= 1 .- train_labels_OneHot[:,:,1,:]
+
+    #create a vector with one label per entry
+    train_labels   = Vector{Any}(undef,size(train_data)[end])
+    val_labels     = Vector{Any}(undef,size(val_data)[end])
+
+    for i=1:length(train_labels)
+      train_labels[i] = train_labels_OneHot[:,:,:,i]
+    #   train_labels[i] = zeros(Float32,size(train_labels_OneHot,1),size(train_labels_OneHot,2),2,1)
+    #   train_labels[i][:,:,1,1] .= 1f0 .*train_labels_OneHot[:,:,9,i]
+    #   train_labels[i][:,:,2,1] .= 1f0 .- train_labels_OneHot[:,:,9,i]
+    end
+
+    for i=1:length(val_labels)
+      val_labels[i] = val_labels_OneHot[:,:,:,i]
+    #   val_labels[i] = zeros(Float32,size(val_labels_OneHot,1),size(val_labels_OneHot,2),2,1)
+    #   val_labels[i][:,:,1,1] .= val_labels_OneHot[:,:,9,i]
+    #   val_labels[i][:,:,2,1] .= 1f0 .- val_labels_OneHot[:,:,9,i]
+    end
+
+    #change data to a vector of examples
+    dataL    = Vector{Array{Float32,4}}(undef,size(train_data,4))
+    datavalL = Vector{Array{Float32,4}}(undef,size(val_data,4))
+    for i=1:length(dataL)
+        dataL[i] = train_data[:,:,:,[i]]
+    end
+    for i=1:length(datavalL)
+        datavalL[i] = val_data[:,:,:,[i]]
+    end
+    train_data = deepcopy(dataL)
+    dataL      = []
+    val_data   = deepcopy(datavalL)
+    datavalL   = []
+
+    cd(current_dir) #switch back to current working dir
+
+    # #repartition training and validation:
+    # val_data   = deepcopy(train_data[47:end])
+    # train_data = train_data[1:46]
+
+    # val_labels = deepcopy(train_labels[47:end])
+    # train_labels = train_labels[1:46]
+
+
+    return train_data, train_labels, val_data, val_labels
+end #end function
+
+function LoadBearVideo(basepath::String,nr_output_chan::Int)
+
+  current_dir = pwd()
+
+  #set data directories
+  data_dir_train  = joinpath(basepath,"bear_images/")
+  label_dir_train = joinpath(basepath,"bear_annotations/")
+
+  #read file names
+  all_train_data = readdir(data_dir_train);
+  all_val_data   = readdir(data_dir_val);
+
+  all_train_labels = readdir(label_dir_train);
+  all_val_labels   = readdir(label_dir_val);
+
+  #allocate tensors for data/label storage
+  train_data     = zeros(Float32,3,360,480,length(all_train_data));
+  val_data       = zeros(Float32,3,360,480,length(all_val_data));
+
+  train_labels   = zeros(Float32,360,480,1,length(all_train_data));
+  val_labels     = zeros(Float32,360,480,1,length(all_val_data));
+
+  #read training data (hardcoded for getting the first video only)
+  cd(data_dir_train)
+  for i=1:length(all_train_data)
+      temp_img = Images.load(all_train_data[i])
+      train_data[1:3,:,:,i] = Images.channelview(temp_img)
+      println(i)
+   end
+
+  #permute to x-y-n_chan-n_examples
+  train_data    = permutedims(train_data,[2,3,1,4]);
+
+  #repeat data to increase channel count explicitly for input-output
+  repeat_factor = Int(nr_output_chan/3)
+  train_data    = repeat(train_data,outer=[1,1,repeat_factor,1])
+
+  #read val data
+  cd(data_dir_val)
+  for i=1:length(all_val_data)
+      temp_img = Images.load(all_val_data[i])
+      val_data[1:3,:,:,i] = Images.channelview(temp_img)
+      println(i)
+   end
+  val_data = permutedims(val_data,[2,3,1,4]);;
+  val_data=repeat(val_data,outer=[1,1,16,1])
+
+  #read training labels
+  cd(label_dir_train)
+  counter = 1
+  for i=1:length(all_train_labels)
+      temp_img = Images.load(all_train_labels[i])
+      train_labels[:,:,1,i] = Images.channelview(temp_img)
+      println(i)
+   end
+
+   #read validation labels
+   cd(label_dir_val)
+   counter = 1
+   for i=1:length(all_val_labels)
+       temp_img = Images.load(all_val_labels[i])
+       val_labels[:,:,1,i] = Images.channelview(temp_img)
+       println(i)
+    end
+
+    #reduce resolution and make sure each dimension can be divided by 2 at least 2 times (to be able to take wavelet transforms)
+    train_labels = train_labels[1:2:end,1:2:end,:,:]; train_labels = train_labels[1:176,:,:,:];
+    val_labels   = val_labels[1:2:end,1:2:end,:,:];   val_labels   = val_labels[1:176,:,:,:];
+    val_data     = val_data[1:2:end,1:2:end,:,:];     val_data     = val_data[1:176,:,:,:];
+    train_data   = train_data[1:2:end,1:2:end,:,:];   train_data   = train_data[1:176,:,:,:];
+
+    #change labels to 1-hot encodings
+    n_class             = length(unique(train_labels))
+    class_values        = sort(unique(train_labels))
+    train_labels_OneHot = zeros(Int,size(train_labels,1),size(train_labels,2),length(class_values),size(train_labels,4));
+    for i=1:length(class_values)
+        println(i)
+        class_indices = findall(train_labels[:,:,1,:] .== class_values[i])
+        class_image = zeros(Int,size(train_labels)[1],size(train_labels)[2],size(train_labels)[4])
+        class_image[class_indices] .= 1
+        train_labels_OneHot[:,:,i,:] .= class_image
+    end
+
+    val_labels_OneHot = zeros(Int,size(val_labels,1),size(val_labels,2),length(class_values),size(val_labels,4));
+    for i=1:length(class_values)
+        class_indices = findall(val_labels[:,:,1,:] .== class_values[i])
+        class_image = zeros(Int,size(val_labels)[1],size(val_labels)[2],size(val_labels)[4])
+        class_image[class_indices] .= 1
+        val_labels_OneHot[:,:,i,:] .= class_image
+    end
+
+    #print % of pixels in each class for the first video
+    println("% of pixels in each class, for first video in CamVid dataset")
+    for i=1:12;
+      println("class: ",i)
+      println(sum(train_labels_OneHot[:,:,i,:])/prod(size(train_labels_OneHot[:,:,1,:])).*100);
+    end
+
+    # selected_classes = [1, 2, 4, 5, 6, 9, 12]
+    # combine_classes = [3,7,8,10,11]
+    #
+    # val_labels_OneHot[:,:,[combine_classes[1]],:]  .= sum(val_labels_OneHot[:,:,combine_classes,:],dims=3)
+    # train_labels_OneHot[:,:,[combine_classes[1]],:].= sum(train_labels_OneHot[:,:,combine_classes,:],dims=3)
+
+    #class 9 corresponds to vehicles
+    selected_classes=[9]
+    #val_labels_OneHot = val_labels_OneHot[:,:,selected_classes,:]
+    train_labels_OneHot = train_labels_OneHot[:,:,selected_classes,:]
+
+    #add the second channel (1 - first channel) (this is unnecessary if n_classes > 3)
+    train_labels_OneHot = repeat(train_labels_OneHot,outer=[1,1,2,1])
+    train_labels_OneHot[:,:,2,:] .= 1 .- train_labels_OneHot[:,:,1,:]
+
+    #create a vector with one label per entry
+    train_labels   = Vector{Any}(undef,size(train_data)[end])
+    val_labels     = Vector{Any}(undef,size(val_data)[end])
+
+    for i=1:length(train_labels)
+      train_labels[i] = train_labels_OneHot[:,:,:,i]
+    #   train_labels[i] = zeros(Float32,size(train_labels_OneHot,1),size(train_labels_OneHot,2),2,1)
+    #   train_labels[i][:,:,1,1] .= 1f0 .*train_labels_OneHot[:,:,9,i]
+    #   train_labels[i][:,:,2,1] .= 1f0 .- train_labels_OneHot[:,:,9,i]
+    end
+
+    for i=1:length(val_labels)
+      val_labels[i] = val_labels_OneHot[:,:,:,i]
+    #   val_labels[i] = zeros(Float32,size(val_labels_OneHot,1),size(val_labels_OneHot,2),2,1)
+    #   val_labels[i][:,:,1,1] .= val_labels_OneHot[:,:,9,i]
+    #   val_labels[i][:,:,2,1] .= 1f0 .- val_labels_OneHot[:,:,9,i]
+    end
+
+    #change data to a vector of examples
+    dataL    = Vector{Array{Float32,4}}(undef,size(train_data,4))
+    datavalL = Vector{Array{Float32,4}}(undef,size(val_data,4))
+    for i=1:length(dataL)
+        dataL[i] = train_data[:,:,:,[i]]
+    end
+    for i=1:length(datavalL)
+        datavalL[i] = val_data[:,:,:,[i]]
+    end
+    train_data = deepcopy(dataL)
+    dataL      = []
+    val_data   = deepcopy(datavalL)
+    datavalL   = []
+
+    cd(current_dir) #switch back to current working dir
+
+    # #repartition training and validation:
+    # val_data   = deepcopy(train_data[47:end])
+    # train_data = train_data[1:46]
+
+    # val_labels = deepcopy(train_labels[47:end])
+    # train_labels = train_labels[1:46]
 
 
     return train_data, train_labels, val_data, val_labels

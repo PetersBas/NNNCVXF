@@ -247,8 +247,8 @@ function addAreaConstraint(data, A_CQ, P_sub_CQ, alpha_CQ, min_area_list, max_ar
         lb_area = zeros(Float32,prod(size(data[i])[1:2])); ub_area = ones(Float32,prod(size(data[i])[1:2]))
         min_area = round(Int,0.0f0 * prod(size(data[i])[1:2]))
         max_area = round(Int,max_area_list[i] * prod(size(data[i])[1:2])) 
-        ub_area[1:end-max_area] .= 0.35
-        lb_area[end-min_area:end] .= 0.65
+        ub_area[1:end-max_area] .= 0.25
+        lb_area[end-min_area:end] .= 0.75
         P_sub_CQ[i][1][end] =  x -> project_histogram_relaxed!(vec(x),lb_area,ub_area)
         append!( alpha_CQ[i][1], alpha_area)
 
@@ -258,8 +258,8 @@ function addAreaConstraint(data, A_CQ, P_sub_CQ, alpha_CQ, min_area_list, max_ar
         lb_area2 = zeros(Float32,prod(size(data[i])[1:2])); ub_area2 = ones(Float32,prod(size(data[i])[1:2]))
         max_area2 = round(Int,(1f0-min_area_list[i]) * prod(size(data[i])[1:2])) #min for ki&iron: 0.05, for ps:17
         min_area2 = round(Int,0.0f0 * prod(size(data[i])[1:2]))#round(Int,(1 - 0.025f0) * prod(size(data[i])[1:2]))
-        lb_area2[end-min_area2:end] .= 0.65
-        ub_area2[1:end-max_area2] .= 0.35
+        lb_area2[end-min_area2:end] .= 0.75
+        ub_area2[1:end-max_area2] .= 0.25
         P_sub_CQ[i][2][end] =  x -> project_histogram_relaxed!(vec(x),lb_area2,ub_area2)
         append!( alpha_CQ[i][2], alpha_area)
 
