@@ -42,21 +42,21 @@ function g_CQ(input,TD_OP,P_sub,alpha_CQ,TrOpts)
 
   #use softmax of final network state for constraining
   #the output for segmentation problems (don't use softmax for non-linear regression)
-  input_orig = deepcopy(input)
-  input      = softmax(input[:,:,TrOpts.active_channels,:],dims=3)
+  input_orig = deepcopy(input) #input is the full tensor (output of the (invertible) neural network)
+  input      = softmax(input[:,:,TrOpts.active_channels,:],dims=3) #channel count reduces to the number active channels
 
-  for j in TrOpts.active_channels #loop over channels, each channel has a (different) corresponding projector
+  for j=1:length(TrOpts.active_channels) #loop over channels, each channel has a (different) corresponding projector
     input_slice        = input[:,:,j,1]
     pen_value_slice    = 0f0 #
     #P_input            = P[j](input_slice) #project onto constraint set (can be an intersection)
     #pen_value_slice    = 0.5f0*norm(vec(P_input)-vec(input_slice))^2 #squared point-to-set distance functino
     f_temp,g_temp      = MultipleSplitFeasCQ_fun_grad(vec(deepcopy(input_slice)),TD_OP[j],P_sub[j],alpha_CQ[j])
-    pen_grad[:,:,j,1] .= reshape(g_temp,size(input_slice)) # gradient of point-to-set distance function
+    pen_grad[:,:,TrOpts.active_channels[j],1] .= reshape(g_temp,size(input_slice)) # gradient of point-to-set distance function. Note that the pen_grad has the shape of the original tensor
 
     pen_value = pen_value + f_temp #accumulate penalty value (loss) over channels
   end #end channels loop
-  pen_grad[:,:,TrOpts.active_channels,[1]] .= NNlib.∇softmax_data(pen_grad[:,:,TrOpts.active_channels,[1]], input[:,:,TrOpts.active_channels,[1]]; dims=3)
-  
+  #pen_grad[:,:,TrOpts.active_channels,[1]] .= NNlib.∇softmax_data(pen_grad[:,:,TrOpts.active_channels,[1]], input[:,:,TrOpts.active_channels,[1]]; dims=3)
+  pen_grad[:,:,TrOpts.active_channels,[1]] .= NNlib.∇softmax_data(pen_grad[:,:,TrOpts.active_channels,[1]], input[:,:,:,[1]]; dims=3)
   return pen_value, pen_grad
 end
 function FWD_CQ_AD(input,TD_OP,P_sub,alpha_CQ,TrOpts)
@@ -221,7 +221,7 @@ function LossTotal(HN,TrOpts,X0::AbstractArray{T, N},label,P,image_weights,activ
    return lval, dc2
 end
 
-function LossTotal(HN,TrOpts,X0::AbstractArray{T, N},label,P,image_weights,active_z_slice::Array{Any,1},P_mode::String,TD_OP,P_sub,alpha_CQ) where {T, N}
+function LossTotal(HN,TrOpts,X0::AbstractArray{T, N},label,P,image_weights,active_z_slice,P_mode::String,TD_OP,P_sub,alpha_CQ) where {T, N}
     alpha=TrOpts.alpha; use_gpu=TrOpts.use_gpu; lossf=TrOpts.lossf; lossg=TrOpts.lossg; active_channels=TrOpts.active_channels;
 
     Y_curr, Y_new, lgdet = HN.forward(X0,X0)
@@ -233,7 +233,7 @@ function LossTotal(HN,TrOpts,X0::AbstractArray{T, N},label,P,image_weights,activ
     if N==4
       grad = zeros(Float32,size(Y_new[:,:,active_channels,1]))
     elseif N==5
-      grad = zeros(Float32,size(Y_new[:,:,:,active_channels,1]))
+      grad = zeros(Float32,size(Y_new[:,:,:,active_channels,1])) #reduces from nx X ny X nz X nchan x nbatch(1) -> nx X ny X nz X n active_chan
     end
 
     if isempty(label)==false
@@ -241,8 +241,8 @@ function LossTotal(HN,TrOpts,X0::AbstractArray{T, N},label,P,image_weights,activ
         lval         = TrOpts.lossf(Y_new[:,:,active_channels,1],label,image_weights)
         (grad,dummy) = TrOpts.lossg(Y_new[:,:,active_channels,1],label,image_weights)
       elseif N==5
-        lval         = TrOpts.lossf(Y_new[:,:,:,active_channels,1],label,image_weights)
-        (grad,dummy) = TrOpts.lossg(Y_new[:,:,:,active_channels,1],label,image_weights)
+        lval         = TrOpts.lossf(Y_new[:,:,active_z_slice,active_channels,1],label,image_weights)
+        (grad,dummy) = TrOpts.lossg(Y_new[:,:,active_z_slice,active_channels,1],label,image_weights)
       end
     else
       lval = 0.0
@@ -250,16 +250,27 @@ function LossTotal(HN,TrOpts,X0::AbstractArray{T, N},label,P,image_weights,activ
 
   if (alpha[1][1]>0 || alpha_CQ[1][1]>0)==true
     if P_mode == "Proj_intersection"
-      dc2,dc2_grad = Dist2Set(Y_new,P,active_channels)
+      if N==5
+        dc2,dc2_grad = Dist2Set(Y_new[:,:,active_z_slice,:,:],P,active_channels)
+      else
+        dc2,dc2_grad = Dist2Set(Y_new,P,active_channels)
+      end
       dc2_grad .= alpha.*dc2_grad
     elseif P_mode == "g_CQ"
-      dc2,dc2_grad = g_CQ(Y_new,TD_OP,P_sub,alpha_CQ,TrOpts)
+      if N==5
+        dc2,dc2_grad = g_CQ(Y_new[:,:,active_z_slice,:,:],TD_OP,P_sub,alpha_CQ,TrOpts)
+      else
+        dc2,dc2_grad = g_CQ(Y_new,TD_OP,P_sub,alpha_CQ,TrOpts)
+      end
     end
 
     if N==4
+      #check this line below, active_channels may need to be removed for full flexibility in chosing channels for the loss
       grad  = grad + dc2_grad[:,:,active_channels,1]
     elseif N==5
-      grad  = grad + dc2_grad[:,:,:,active_channels,1]
+      #println(size(grad))#(152, 120, 76, 2)      
+      #println(size(dc2_grad))#      (152, 120, 128, 1)
+      grad[:,:,active_z_slice,:]  = grad[:,:,active_z_slice,:] + dc2_grad[:,:,active_channels,1] #dc2_grad is 4D even though we work in 5D, as the labels apply to a single 
     end
   else
     dc2 = 0f0

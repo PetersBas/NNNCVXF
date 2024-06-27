@@ -1,4 +1,4 @@
-export PlotCamvidLossUnconstrained, PlotCamvidLossConstrained, PlotDataLabelPredictionCamvid, PlotHyperspectralLossConstrained, PlotDataLabelPredictionHyperspectral
+export PlotCamvidLossUnconstrained, PlotCamvidLossConstrained, PlotDataLabelPredictionCamvid, PlotHyperspectralLossConstrained, PlotDataLabelPredictionHyperspectral#, Plot3DModel
 
 function PlotHyperspectralLossConstrained(logs,eval_every)
 
@@ -58,6 +58,7 @@ function PlotDataLabelPredictionHyperspectral(plt_ind::Int,data,label,HN,active_
   #tight_layout()
   savefig(string(tag,"_labels.png"),bbox_inches="tight")
 
+  #plot errors
   figure(figsize=(5,4));
   imshow(Array(pred_thres)[3:end-2,3:end-2]-label[plt_ind][:,:,active_z_slice,active_channels[1],1][3:end-2,3:end-2],vmin=-1,vmax=1);title(string("Difference"));#xlabel("x");ylabel("y")
   tight_layout()
@@ -67,6 +68,22 @@ function PlotDataLabelPredictionHyperspectral(plt_ind::Int,data,label,HN,active_
   imshow(Array(pred_thres2)[3:end-2,3:end-2]-label[plt_ind][:,:,active_z_slice,active_channels[2],1][3:end-2,3:end-2],vmin=-1,vmax=1);title(string("Difference"));#xlabel("x");ylabel("y")
   tight_layout()
   savefig(string(tag,"_error2.png"),bbox_inches="tight")
+
+  #plot errors + labels
+  figure(figsize=(5,4));
+  imshow(Array(pred_thres)-label[plt_ind][:,:,active_z_slice,active_channels[1],1]);title(string("Errors + labels"));#xlabel("x");ylabel("y")
+  for i=1:length(pos_inds_select)
+      PyPlot.scatter(pos_inds_select[i][2],pos_inds_select[i][1],c="r")
+  end
+  if isempty(neg_inds_select)==false
+    for i=1:length(neg_inds_select)
+        PyPlot.scatter(neg_inds_select[i][2],neg_inds_select[i][1],c="w")
+    end
+  end
+  n = size(label[plt_ind][:,:,active_z_slice,active_channels[1],1])
+  ylim([n[1],0]);xlim([0,n[2]])
+  #tight_layout()
+  savefig(string(tag,"_errors_labels.png"),bbox_inches="tight")
 
   #Plot data+prediction
   figure(figsize=(9,5))
@@ -240,7 +257,7 @@ function PlotDataLabelPredictionCamvid(plt_ind::Int,data,label,HN,active_channel
   p1, prediction, ~ = HN.forward(data[plt_ind], data[plt_ind])
   prediction[:,:,active_channels,1].=softmax(prediction[:,:,active_channels,1],dims=3);
 
-  close("all")
+
   vmi = 0.0
   vma = 1.0
   figure(figsize=(6,4))
@@ -269,3 +286,56 @@ function PlotDataLabelPredictionCamvid(plt_ind::Int,data,label,HN,active_channel
   savefig(string(tag,"data_plus_pred.png"))
   return
 end
+
+# function Plot3DModel(data_cube,filename,color_map=grays)
+#   #3D plot
+#   using GLMakie
+
+#   n = size(data_cube)
+
+#   fig = GLMakie.Figure()
+#   ax = LScene(fig[1, 1], show_axis=false)
+
+#   x = LinRange(0, n[1], n[1])
+#   y = LinRange(0, n[2], n[2])
+#   z = LinRange(0, n[3], n[3])
+
+#   sgrid = SliderGrid(
+#       fig[2, 1],
+#       (label = "yz plane - x axis", range = 1:length(x)),
+#       (label = "xz plane - y axis", range = 1:length(y)),
+#       (label = "xy plane - z axis", range = 1:length(z)),
+#   )
+
+#   lo = sgrid.layout
+#   nc = ncols(lo)
+
+#   vol = data_cube
+#   vol = reverse(vol,dims=3)
+#   plt = volumeslices!(ax, x, y, z, vol, colormap=:grays)
+
+#   # connect sliders to `volumeslices` update methods
+#   sl_yz, sl_xz, sl_xy = sgrid.sliders
+
+#   on(sl_yz.value) do v; plt[:update_yz][](v) end
+#   on(sl_xz.value) do v; plt[:update_xz][](v) end
+#   on(sl_xy.value) do v; plt[:update_xy][](v) end
+
+#   set_close_to!(sl_yz, .5length(x))
+#   set_close_to!(sl_xz, .5length(y))
+#   set_close_to!(sl_xy, .5length(z))
+
+#   # add toggles to show/hide heatmaps
+#   hmaps = [plt[Symbol(:heatmap_, s)][] for s ∈ (:yz, :xz, :xy)]
+#   toggles = [Toggle(lo[i, nc + 1], active = true) for i ∈ 1:length(hmaps)]
+
+#   map(zip(hmaps, toggles)) do (h, t)
+#       connect!(h.visible, t.active)
+#   end
+
+#   # cam3d!(ax.scene, projectiontype=Makie.Orthographic)
+
+#   fig
+#   Makie.save(string(filename,".png"), fig)
+
+# end
